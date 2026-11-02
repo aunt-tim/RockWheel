@@ -730,16 +730,24 @@ static int add_indices_to_playlist(struct playlist_info* playlist,
 
     i = lseek(playlist->fd, 0, SEEK_CUR);
 
+    /* A BOM puts the file three bytes on from a buffer aligned for DMA, and all of it
+       would go without. As far on in the buffer it lines up, and the first read then
+       ends where a sector does, so the rest can start at the buffer's start. */
+    size_t shift = i & 15;
+    if (shift >= buflen)
+        shift = 0;
+
     store_index = true;
 
     while(1)
     {
-        nread = read(playlist->fd, buffer, buflen);
+        nread = read(playlist->fd, (char *)buffer + shift, buflen - shift);
         /* Terminate on EOF */
         if(nread <= 0)
             break;
 
-        p = (unsigned char *)buffer;
+        p = (unsigned char *)buffer + shift;
+        shift = 0;
 
         for(count=0; count < (unsigned int)nread; count++,p++) {
 
