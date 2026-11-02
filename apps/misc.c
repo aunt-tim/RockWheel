@@ -1215,10 +1215,44 @@ void format_sound_value_ex(char *buf, size_t buf_sz, int snd, int val, bool skin
              i, numdec, ".", numdec, d, &" "[skin_token], skin_token ? "" : unit);
 }
 
-/* format a sound value as "-1.05 dB", or " 1.05 dB" */
+int volume_step_nearest(int vol)
+{
+    int nearest = 0;
+    for (int i = 1; i < VOLUME_STEPS; i++)
+    {
+        if (abs(volume_steps[i] - vol) < abs(volume_steps[nearest] - vol))
+            nearest = i;
+    }
+    return volume_steps[nearest];
+}
+
+const char *format_volume_step(char *buf, size_t buf_sz, int vol)
+{
+    const int step = volume_step_nearest(vol);
+    int i = 0;
+    while (volume_steps[i] != step)
+        i++;
+    if (i == 0)
+        return str(LANG_OFF);
+    snprintf(buf, buf_sz, "%d%%", 100 - 5 * i);
+    return buf;
+}
+
+/* format a sound value as "-1.05 dB", or "1.05 dB": no space in front, as the
+   iPod's rows put a value at their right; the balance by its side */
 void format_sound_value(char *buf, size_t buf_sz, int snd, int val)
 {
-    format_sound_value_ex(buf, buf_sz, snd, val, false);
+    const char *unit = sound_unit(snd);
+    const char *space = strcmp(unit, "%") ? " " : "";
+    if (snd == SOUND_BALANCE && val != 0)
+    {
+        snprintf(buf, buf_sz, "%s %d%s%s", str(val < 0 ? LANG_LEFT : LANG_RIGHT),
+                 abs(val), space, unit);
+        return;
+    }
+    format_sound_value_ex(buf, buf_sz, snd, val, true);
+    const size_t len = strlen(buf);
+    snprintf(buf + len, buf_sz - len, "%s%s", space, unit);
 }
 
 /* LANG_PLURAL_FORMS says which forms a language has: "one-other" like

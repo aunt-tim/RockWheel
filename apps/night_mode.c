@@ -222,6 +222,11 @@ void night_mode_boot(void)
 {
     struct user_settings *const s = &global_settings;
 
+    /* one saved in dB of its own is the step of the volume bar nearest it */
+    s->night_volume = volume_step_nearest(s->night_volume);
+    if (s->night_volume == 0)
+        s->night_volume = volume_steps[1];
+
 #if CONFIG_RTC
     /* over midnight or not, and whether it has gone by while it was off */
     struct tm *tm = get_time();

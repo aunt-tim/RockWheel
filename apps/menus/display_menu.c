@@ -242,6 +242,27 @@ MAKE_MENU(night_menu, ID2P(LANG_NIGHT_MODE), NULL, Icon_NOICON,
           &night_limit_item, &night_volume_item,
           &night_group_schedule,
           &night_schedule_item, &night_start_item, &night_end_item);
+
+/* its row in Settings, which says whether it's on, as the EQ's says its preset */
+static int night_menu_open(void)
+{
+    /* Menu held goes on to the main menu, past the menu this one was opened from */
+    if (do_menu(&night_menu, NULL, NULL, false) == GO_TO_ROOT)
+        menu_request_root();
+    return 0;
+}
+
+static char *night_row_name(int selected_item, void *data,
+                            char *buffer, size_t buffer_len)
+{
+    (void)selected_item; (void)data;
+    snprintf(buffer, buffer_len, "%s\t%s", str(LANG_NIGHT_MODE),
+             str(global_settings.night_mode ? LANG_ON : LANG_OFF));
+    return buffer;
+}
+
+MENUITEM_FUNCTION_DYNTEXT(night_row, 0, night_menu_open, night_row_name,
+                          NULL, NULL, NULL, Icon_NOICON);
 #ifdef HAVE_COMPOSITE_VIDEO_OUT
 MENUITEM_SETTING(composite_video_output,
                  &global_settings.composite_video_output, NULL);

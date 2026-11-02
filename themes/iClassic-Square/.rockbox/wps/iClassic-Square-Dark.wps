@@ -39,16 +39,17 @@
 # normal | scrubber | album art | lyrics | rating
 %?mw<%Vd(info)%?mv(2.0)<%Vd(volume)|%Vd(pb)>|%Vd(info)%Vd(scrub)|%?C<%Vd(bigart)|%Vd(info)%Vd(pb)>|%Vd(lyrics)|%Vd(info)%Vd(rating)>
 %?mv(5)<%?St(battery display)<%Vd(title)|%Vd(titlebat)>|%?St(battery display)<%?mp<%Vd(clock)|%Vd(clock)|%Vd(clock)|%Vd(title)|%Vd(title)>|%?mp<%Vd(clock)|%Vd(clock)|%Vd(clock)|%Vd(titlebat)|%Vd(titlebat)>>>
-%Vl(title,6,2,205,14,4)%Vf(F2F2F6)
+%Vl(title,6,2,190,14,4)%Vf(F2F2F6)
 %s%al%Sx(Now Playing)
-%Vl(titlebat,6,2,170,14,4)%Vf(F2F2F6)
+%Vl(titlebat,6,2,155,14,4)%Vf(F2F2F6)
 %s%al%Sx(Now Playing)
-%Vl(clock,6,2,170,14,4)%Vf(F2F2F6)
+%Vl(clock,6,2,155,14,4)%Vf(F2F2F6)
 %s%al%?pS(15)<%Sx(Now Playing)|%?cf<%cH:%cM|%cl:%cM %cP>>
 %xl(B,Battery.bmp,0,0,24)
 %V(291,4,25,11,-)
 %?bp<%?bc<%t(1.0)%xd(Ba);%t(1.0)%xd(Bb)|%xd(Bc)>|%?bl<%xd(Bd)|%xd(Bd)|%xd(Be)|%xd(Bf)|%xd(Bg)|%xd(Bh)|%xd(Bi)|%xd(Bj)|%xd(Bk)|%xd(Bl)|%xd(Bm)|%xd(Bn)|%xd(Bo)|%xd(Bp)|%xd(Bq)|%xd(Br)|%xd(Bs)|%xd(Bt)|%xd(Bu)|%xd(Bv)|%xd(Bw)|%xd(Bx)||>>
 %?St(battery display)<%Vd(nonumbat)|%Vd(numbat)>
+%?nN<%?St(battery display)<%?ps<%?mm<%Vd(night2)|%Vd(night3)|%Vd(night3)|%Vd(night3)|%Vd(night3)>|%?mm<%Vd(night1)|%Vd(night2)|%Vd(night2)|%Vd(night2)|%Vd(night2)>>|%?ps<%?mm<%Vd(nightnum2)|%Vd(nightnum3)|%Vd(nightnum3)|%Vd(nightnum3)|%Vd(nightnum3)>|%?mm<%Vd(nightnum1)|%Vd(nightnum2)|%Vd(nightnum2)|%Vd(nightnum2)|%Vd(nightnum2)>>>|>
 %Vl(numbat,255,3,32,12,2)%Vf(F2F2F6)
 %ac%bl%%
 %xl(P,Playing Status.bmp,0,0,4)
@@ -72,6 +73,23 @@
 %?ps<%?mm<|%xd(ra)|%xd(rb)|%t(1.0)%xd(rc);%t(1.0)%xd(ra)|%xd(rd)>|>
 %Vl(numbat,214,2,16,16,-)
 %?ps<%xd(S)|%?mm<|%xd(ra)|%xd(rb)|%t(1.0)%xd(rc);%t(1.0)%xd(ra)|%xd(rd)>>
+# Night Mode on: the moon, just left of the icons beside the battery, which move up
+# when shuffle or repeat is off. After them, as a viewport drawn later over another
+# would wipe it on a full redraw, as at a track change, and with both on it stays
+# left of the hold icon, clear of the titles, which are narrower for it.
+%xl(N,Status Night.bmp,0,0)
+%Vl(night1,249,2,16,16,-)
+%xd(N)
+%Vl(night2,228,2,16,16,-)
+%xd(N)
+%Vl(night3,198,2,16,16,-)
+%xd(N)
+%Vl(nightnum1,214,2,16,16,-)
+%xd(N)
+%Vl(nightnum2,193,2,16,16,-)
+%xd(N)
+%Vl(nightnum3,163,2,16,16,-)
+%xd(N)
 #%?C<%Vd(aa)|>
 #%xl(w,FrameTop.bmp,0,0)
 #%xl(x,FrameLeft.bmp,0,13)
@@ -108,8 +126,10 @@
 %xl(v,Volume Left.bmp,0,0)
 %Vl(volume,34,204,13,19,-)
 %xd(v)
+# under the bar: the volume while it's turned and a second after, then the limit, if
+# one is set
 %Vl(volume,58,227,204,13,2)%Vf(F2F2F6)
-%ac%?St(volume display)<|%pv dB>
+%ac%?mv(1.0)<%nv|%?nV<%nV|%nv>>
 %Vl(pb,0,207,45,14,2)%Vf(F2F2F6)
 %ar%pc
 %Vl(pb,273,207,47,14,2)%Vf(F2F2F6)

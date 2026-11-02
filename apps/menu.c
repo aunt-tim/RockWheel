@@ -142,11 +142,7 @@ static const char *setting_value(const struct settings_list *setting,
     if (HASFLAG(setting, F_BOOL_SETTING))
         return str(*(bool *)setting->setting ? LANG_ON : LANG_OFF);
     if (HASFLAG(setting, F_CUSTOM_SETTING)) /* the volume limit */
-    {
-        format_sound_value(buffer, buffer_len, SOUND_VOLUME,
-                           *(int *)setting->setting);
-        return buffer;
-    }
+        return format_volume_step(buffer, buffer_len, *(int *)setting->setting);
     return option_get_valuestring(setting, buffer, buffer_len,
                                   option_value_as_int(setting));
 }

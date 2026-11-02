@@ -41,31 +41,30 @@ static const char* vol_limit_format(char* buffer, size_t buffer_size, int value,
                       const char* unit)
 {
     (void)unit;
-    format_sound_value(buffer, buffer_size, SOUND_VOLUME, value);
-    return buffer;
+    return format_volume_step(buffer, buffer_size, value);
 }
 
-/* its screen: the volume comes down to it if it's over it when this closes */
+/* its screen, by the volume bar as the other settings show the volume: the volume
+   comes down to it if it's over it when this closes */
 void volume_limit_screen(void)
 {
-    static struct int_setting volume_limit_int_setting;
-
-    volume_limit_int_setting = (struct int_setting)
+    static const struct table_setting volume_limit_table =
     {
         .option_callback = NULL,
-        .unit = UNIT_DB,
-        .step = sound_steps(SOUND_VOLUME),
-        .min = sound_min(SOUND_VOLUME),
-        .max = sound_max(SOUND_VOLUME),
         .formatter = vol_limit_format,
-        .get_talk_id = NULL
+        .get_talk_id = NULL,
+        .unit = UNIT_INT,
+        .count = VOLUME_STEPS,
+        .cfg_vals = NULL,
+        .values = volume_steps
     };
 
+    global_settings.volume_limit = volume_step_nearest(global_settings.volume_limit);
     struct settings_list setting;
-    setting.flags = F_BANFROMQS|F_INT_SETTING|F_T_INT|F_NO_WRAP;
+    setting.flags = F_BANFROMQS|F_TABLE_SETTING|F_T_INT|F_NO_WRAP;
     setting.lang_id = LANG_VOLUME_LIMIT;
-    setting.default_val.int_ = volume_limit_int_setting.max;
-    setting.int_setting = &volume_limit_int_setting;
+    setting.default_val.int_ = 0;
+    setting.table_setting = &volume_limit_table;
     setting.setting = &global_settings.volume_limit;
     option_screen(&setting, NULL, false, ID2P(LANG_VOLUME_LIMIT));
 }

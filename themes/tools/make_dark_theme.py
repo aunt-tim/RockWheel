@@ -182,7 +182,7 @@ list_backdrop(os.path.join(LIGHT, "About Backdrop.bmp"), os.path.join(DARK, "Abo
 list_backdrop(os.path.join(LIGHT, "Wide Backdrop.bmp"), os.path.join(DARK, "Wide Backdrop.bmp"), False)
 now_playing_backdrop(os.path.join(LIGHT, "iClassic_bg.bmp"), os.path.join(DARK, "iClassic_bg.bmp"))
 progress_fill(os.path.join(LIGHT, "PB.bmp"), os.path.join(DARK, "PB.bmp"))
-for name in ("Battery", "Playing Status", "Hold Icon", "Status Repeat", "Status Shuffle",
+for name in ("Battery", "Playing Status", "Hold Icon", "Status Repeat", "Status Shuffle", "Status Night",
              "Memory Access", "Radio Icon", "Stereo Icon", "Repeat Icon", "Shuffle Icon"):
     each_pixel(os.path.join(LIGHT, name + ".bmp"), os.path.join(DARK, name + ".bmp"), header_pixel)
 for name in ("Stars", "Ratings", "Volume Left", "Volume Right", "Art Mask"):

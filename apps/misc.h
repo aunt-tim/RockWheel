@@ -267,6 +267,15 @@ enum current_activity get_current_activity(void);
  */
 void format_sound_value(char *buf, size_t buf_sz, int snd, int val);
 
+/* The volume by the share of the volume bar, as the iPod's settings show it: Off
+   (the top), then 95% to 5% in steps of 5 (settings_list.c) */
+#define VOLUME_STEPS 20
+extern const int volume_steps[VOLUME_STEPS];
+/* the step nearest vol, in dB */
+int volume_step_nearest(int vol);
+/* "80%", or Off for the top */
+const char *format_volume_step(char *buf, size_t buf_sz, int vol);
+
 /* Set skin_token parameter to true to format a sound value for
  * display in themes, like:   "-1.05"       (negative values)
  *                            "1.05"        (positive values without leading space)

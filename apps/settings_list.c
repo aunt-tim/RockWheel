@@ -609,6 +609,13 @@ static int32_t getlang_time_unit_0_is_always(int value, int unit)
 }
 #endif /* HAVE_BACKLIGHT || HAVE_LCD_SLEEP_SETTING */
 
+static const char* formatter_volume_step(char *buffer, size_t buffer_size,
+                                         int val, const char *unit)
+{
+    (void)unit;
+    return format_volume_step(buffer, buffer_size, val);
+}
+
 static const char* formatter_time_unit_0_is_skip_track(char *buffer,
                                 size_t buffer_size, int val, const char *unit)
 {
@@ -1077,11 +1084,19 @@ static void start_in_callback(int var)
         open_plugin_browse(ID2P(LANG_START_SCREEN));
 }
 
+/* The volume as the iPod's settings show it, by the share of the volume bar it fills
+   rather than in dB: Off at the top, then 95% down to 5% in steps of 5, each the whole
+   dB nearest it on this codec's scale of -90 to 0 dB, with the bar's mapping */
+const int volume_steps[VOLUME_STEPS] = {
+    0, -1, -3, -4, -6, -7, -9, -11, -13, -15, -17, -20, -23, -26, -30, -34, -39, -45,
+    -53, -66
+};
+
 /* volume limiter */
 static void volume_limit_load_from_cfg(void* var, char*value)
 {
-    /* one saved when the volume went higher is the top */
-    *(int*)var = MIN(atoi(value), sound_max(SOUND_VOLUME));
+    /* one saved in dB of its own, or over the top, is the step nearest it */
+    *(int*)var = volume_step_nearest(atoi(value));
 }
 static char* volume_limit_write_to_cfg(void* setting, char*buf, int buf_len)
 {
@@ -1436,8 +1451,10 @@ const struct settings_list settings[] = {
                 MAX_FILES_IN_DIR_STEP,
                 NULL, NULL, NULL),
 #ifdef HAVE_PERCEPTUAL_VOLUME
+    /* by even shares of the volume bar, as its percentages show it, rather than by a dB
+       a click, which took 24 clicks from 5% to nothing and 4% at the top */
     CHOICE_SETTING(0, volume_adjust_mode, LANG_VOLUME_ADJUST_MODE,
-                   VOLUME_ADJUST_DIRECT, "volume adjustment mode",
+                   VOLUME_ADJUST_PERCEPTUAL, "volume adjustment mode",
                    "direct,perceptual", NULL, 2,
                    ID2P(LANG_DIRECT), ID2P(LANG_PERCEPTUAL)),
     INT_SETTING_NOWRAP(0, volume_adjust_norm_steps, LANG_VOLUME_ADJUST_NORM_STEPS,
@@ -1585,8 +1602,10 @@ const struct settings_list settings[] = {
                 NULL, NULL, night_brightness_changed),
 #endif
     OFFON_SETTING(0, night_limit, LANG_NIGHT_LIMIT, true, "night limit", night_action_changed),
-    INT_SETTING(F_NO_WRAP, night_volume, LANG_NIGHT_VOLUME, -12, "night volume", UNIT_DB,
-                -60, 0, 1, NULL, NULL, NULL),
+    /* by the volume bar, as the limit is, without its Off */
+    TABLE_SETTING_LIST(F_NO_WRAP, night_volume, LANG_NIGHT_VOLUME, -13, "night volume",
+                       NULL, UNIT_INT, formatter_volume_step, NULL, NULL,
+                       VOLUME_STEPS - 1, volume_steps + 1),
     OFFON_SETTING(0, night_schedule, LANG_NIGHT_ON_SCHEDULE, false, "night schedule",
                   night_schedule_changed),
     INT_SETTING(0, night_start, LANG_NIGHT_STARTS, 22 * 60, "night start", UNIT_INT,
