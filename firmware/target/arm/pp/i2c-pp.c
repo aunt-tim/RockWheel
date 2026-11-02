@@ -52,9 +52,20 @@ static struct mutex i2c_mtx SHAREDBSS_ATTR;
 
 #define POLL_TIMEOUT (HZ)
 
+/* how long a transfer is waited for on the spot: a few bytes take 0.1-0.3 ms, and
+   giving the processor away for them cost a step of the volume its turn again each
+   time, as long as a decoder starting a track keeps it */
+#define SPIN_USEC 1000
+
 static int pp_i2c_wait_not_busy(void)
 {
     unsigned long timeout;
+    const unsigned long spin_start = USEC_TIMER;
+    while (USEC_TIMER - spin_start < SPIN_USEC) {
+         if (!(I2C_STATUS & I2C_BUSY)) {
+            return 0;
+         }
+    }
     timeout = current_tick + POLL_TIMEOUT;
     while (TIME_BEFORE(current_tick, timeout)) {
          if (!(I2C_STATUS & I2C_BUSY)) {

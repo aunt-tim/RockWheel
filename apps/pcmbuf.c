@@ -401,11 +401,15 @@ static void boost_codec_thread(int pcm_fill_state)
     if (audio_pcmbuf_skip_pending())
         pcm_fill_state = 10;
 
+    /* Far over the UI only while under 0.8 s is buffered, where a dropout is near:
+       there each switch of threads went to it, and the UI waited for eleven of them,
+       140 ms, with each turn of the wheel as a track started, for over a second.
+       Then just over the UI, and then even with it. */
     static const int8_t prios[11] =
     {
         PRIORITY_PLAYBACK_MAX,      /*   0 - 10% */
-        PRIORITY_PLAYBACK_MAX+1,    /*  10 - 20% */
-        PRIORITY_PLAYBACK_MAX+3,    /*  20 - 30% */
+        PRIORITY_PLAYBACK-1,        /*  10 - 20% */
+        PRIORITY_PLAYBACK,          /*  20 - 30% */
         PRIORITY_PLAYBACK,          /*  30 - 40% */
         /* over 3 s buffered: after the UI, which it catches up on as soon as
            the UI has nothing to do */

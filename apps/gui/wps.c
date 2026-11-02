@@ -1149,31 +1149,27 @@ long gui_wps_show(void)
                     update = false;
                     break;
                 }
+                /* which sets it too: once, as each write to the codec waits on
+                   its bus, and the decoder takes the processor meanwhile */
                 if (button == ACTION_WPS_VOLUP)
                     adjust_volume(1);
                 else
                     adjust_volume(-1);
 
-                setvol();
                 FOR_NB_SCREENS(i)
                 {
                     skin_update(WPS, i, SKIN_REFRESH_NON_STATIC);
                 }
                 update = false;
                 break;
-            /* fast forward
-                OR next dir if this is straight after ACTION_WPS_SKIPNEXT */
+            /* fast forward, or the next part of a cue sheet if this is straight
+               after ACTION_WPS_SKIPNEXT; not the next folder, as the music isn't
+               in folders of its own here, and it began the track again */
             case ACTION_WPS_SEEKFWD:
-                if (current_tick -last_right < HZ)
+                if (current_tick -last_right < HZ
+                    && state->id3->cuesheet && playlist_check(1))
                 {
-                    if (state->id3->cuesheet && playlist_check(1))
-                    {
-                        audio_next();
-                    }
-                    else
-                    {
-                        change_dir(1);
-                    }
+                    audio_next();
                 }
                 else
                     ffwd_rew(ACTION_WPS_SEEKFWD, false);
@@ -1182,16 +1178,10 @@ long gui_wps_show(void)
             /* fast rewind
                 OR prev dir if this is straight after ACTION_WPS_SKIPPREV,*/
             case ACTION_WPS_SEEKBACK:
-                if (current_tick - last_left < HZ)
+                if (current_tick - last_left < HZ
+                    && state->id3->cuesheet && playlist_check(-1))
                 {
-                    if (state->id3->cuesheet && playlist_check(-1))
-                    {
-                        audio_prev();
-                    }
-                    else
-                    {
-                        change_dir(-1);
-                    }
+                    audio_prev();
                 } else if (global_settings.rewind_across_tracks
                            && get_wps_state()->id3->elapsed < DEFAULT_SKIP_THRESH
                            && playlist_check(-1))

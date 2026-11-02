@@ -90,6 +90,29 @@ static void audiohw_mute(bool mute)
     }
 }
 
+/* A pair of the codec's volume registers, written only if one of them changes: each
+   write waits on the I2C bus, giving the processor away, and a step of the volume
+   wrote six. The right one, with its update bit, puts both in effect. */
+struct volume_pair
+{
+    int left, right;
+};
+
+static void write_volume_pair(struct volume_pair *last, int reg_l, int val_l,
+                              int reg_r, int val_r)
+{
+    if (last->left == val_l && last->right == val_r)
+        return;
+    wmcodec_write(reg_l, val_l);
+    wmcodec_write(reg_r, val_r);
+    last->left = val_l;
+    last->right = val_r;
+}
+
+static struct volume_pair dac_last = { -1, -1 };
+static struct volume_pair out1_last = { -1, -1 };
+static struct volume_pair out2_last = { -1, -1 };
+
 void audiohw_preinit(void)
 {
     /* Set low bias mode */
@@ -102,6 +125,9 @@ void audiohw_preinit(void)
     wmcodec_write(ROUT1VOL, 0x140);
     wmcodec_write(LOUT2VOL, 0x140);
     wmcodec_write(ROUT2VOL, 0x140);
+    /* what the volume pairs now hold, the DAC's unknown */
+    out1_last = out2_last = (struct volume_pair){ 0x140, 0x140 };
+    dac_last = (struct volume_pair){ -1, -1 };
     wmcodec_write(OUT3MIX,  0x40);
     wmcodec_write(OUT4MIX,  0x40);
     /* Enable L/ROUT1 */
@@ -147,12 +173,11 @@ void audiohw_set_volume(int vol_l, int vol_r)
 
     /* set DAC
        Important: DAC is global and will also affect lineout */
-    wmcodec_write(LDACVOL, dac_l);
-    wmcodec_write(RDACVOL, dac_r | RDACVOL_DACVU);
+    write_volume_pair(&dac_last, LDACVOL, dac_l, RDACVOL, dac_r | RDACVOL_DACVU);
 
     /* set headphone amp OUT1 */
-    wmcodec_write(LOUT1VOL, amp_l | LOUT1VOL_LOUT1ZC);
-    wmcodec_write(ROUT1VOL, amp_r | ROUT1VOL_ROUT1ZC | ROUT1VOL_OUT1VU);
+    write_volume_pair(&out1_last, LOUT1VOL, amp_l | LOUT1VOL_LOUT1ZC,
+                      ROUT1VOL, amp_r | ROUT1VOL_ROUT1ZC | ROUT1VOL_OUT1VU);
 }
 
 void audiohw_set_lineout_volume(int vol_l, int vol_r)
@@ -166,8 +191,8 @@ void audiohw_set_lineout_volume(int vol_l, int vol_r)
     get_volume_params(vol_r, &dac_r, &amp_r);
 
     /* set lineout amp OUT2 */
-    wmcodec_write(LOUT2VOL, amp_l | LOUT2VOL_LOUT2ZC);
-    wmcodec_write(ROUT2VOL, amp_r | ROUT2VOL_ROUT2ZC | ROUT2VOL_OUT2VU);
+    write_volume_pair(&out2_last, LOUT2VOL, amp_l | LOUT2VOL_LOUT2ZC,
+                      ROUT2VOL, amp_r | ROUT2VOL_ROUT2ZC | ROUT2VOL_OUT2VU);
 }
 
 void audiohw_enable_lineout(bool enable)
