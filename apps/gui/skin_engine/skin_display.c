@@ -919,7 +919,16 @@ static bool menu_art_ready(const struct wps_data *data)
     bm.height = MIN(aa->height, ART_MENU_SIZE);
     bm.data = (unsigned char *)menu_art.pixels;
     menu_art.width = 0;
-    if (itunesdb_load_art(&art, &bm, sizeof(bm) + sizeof(menu_art.pixels)) < 0)
+    /* from the cover in the buffer if it's as large as Finder's, as the disk is
+       often off by the time the menus open, and turning it on takes 0.6 s */
+    const struct bitmap *buffered = playback_current_largest_art();
+    const int room = sizeof(bm) + sizeof(menu_art.pixels);
+    int size;
+    if (buffered && buffered->width >= art.width && buffered->height >= art.height)
+        size = itunesdb_scale_art(buffered, &bm, room);
+    else
+        size = itunesdb_load_art(&art, &bm, room);
+    if (size < 0)
         return false;
     menu_art.width = bm.width;
     menu_art.height = bm.height;

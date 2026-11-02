@@ -2988,37 +2988,33 @@ static void lock_art(void)
     mutex_lock(&art_lock);
 }
 
-int itunesdb_load_art(const struct itunesdb_art *art, struct bitmap *bm,
-                      int max_size)
+/* the size of a frame in bm: the largest that fits, up or down, keeping the
+   shape; false when it's more than max_size holds */
+static bool art_fit(int fw, int fh, int *w, int *h, int max_size)
 {
-    int fw = art->width, fh = art->height;
-    int w = bm->width, h = bm->height;
-    if (fw <= 0 || fh <= 0 || w <= 0 || h <= 0)
-        return -1;
-
-    /* the largest that fits, up or down, keeping the shape */
-    if (w * fh > h * fw)
-        w = (h * fw + fh / 2) / fh;
+    if (fw <= 0 || fh <= 0 || *w <= 0 || *h <= 0)
+        return false;
+    if (*w * fh > *h * fw)
+        *w = (*h * fw + fh / 2) / fh;
     else
-        h = (w * fh + fw / 2) / fw;
-    int out_size = w * h * sizeof(fb_data);
-    if (w > ROW_MAX || out_size + (int)sizeof(struct bitmap) > max_size)
-        return -1;
+        *h = (*w * fh + fw / 2) / fw;
+    return *w <= ROW_MAX
+           && *w * *h * (int)sizeof(fb_data) + (int)sizeof(struct bitmap) <= max_size;
+}
 
-    lock_art();
-    const fb_data *frame = get_frame(art);
-    if (frame && w == fw && h == fh)
+/* the frame into bm at w by h */
+static int art_put(const fb_data *frame, int fw, int fh, struct bitmap *bm,
+                   int w, int h)
+{
+    const int out_size = w * h * sizeof(fb_data);
+    if (w == fw && h == fh)
         memcpy(bm->data, frame, out_size);
-    else if (frame)
+    else
     {
         cpu_boost(true);
         scale_frame(frame, fw, fh, (fb_data *)bm->data, w, h, false);
         cpu_boost(false);
     }
-    mutex_unlock(&art_lock);
-    if (!frame)
-        return -1;
-
     bm->width = w;
     bm->height = h;
 #if LCD_DEPTH > 1
@@ -3029,6 +3025,32 @@ int itunesdb_load_art(const struct itunesdb_art *art, struct bitmap *bm,
     bm->alpha_offset = 0;
 #endif
     return out_size;
+}
+
+int itunesdb_load_art(const struct itunesdb_art *art, struct bitmap *bm,
+                      int max_size)
+{
+    int w = bm->width, h = bm->height;
+    if (!art_fit(art->width, art->height, &w, &h, max_size))
+        return -1;
+
+    lock_art();
+    const fb_data *frame = get_frame(art);
+    const int size = frame ? art_put(frame, art->width, art->height, bm, w, h) : -1;
+    mutex_unlock(&art_lock);
+    return size;
+}
+
+int itunesdb_scale_art(const struct bitmap *src, struct bitmap *bm, int max_size)
+{
+    int w = bm->width, h = bm->height;
+    if (!art_fit(src->width, src->height, &w, &h, max_size))
+        return -1;
+
+    /* not waiting for art_lock, which a read from the disk can hold for long, and
+       src could move in the buffer meanwhile: scaling doesn't yield, so it's never
+       in scale_frame's rows along with another thread */
+    return art_put((const fb_data *)src->data, src->width, src->height, bm, w, h);
 }
 
 int itunesdb_load_slide(const struct itunesdb_art *art, void *buf,

@@ -134,6 +134,9 @@ bool itunesdb_find_art(const char *path, struct itunesdb_art *art);
 int itunesdb_load_art(const struct itunesdb_art *art, struct bitmap *bm,
                       int max_size);
 
+/* the same from a cover already in memory, such as one in the buffer */
+int itunesdb_scale_art(const struct bitmap *src, struct bitmap *bm, int max_size);
+
 /* reads the slide of the cover's album into buf, ITUNESDB_SLIDE_SIZE
    squared pixels at most, column after column, and its size into width and
    height; returns the size of the pixels, or -1 when it isn't made (yet) */

@@ -4378,6 +4378,26 @@ int playback_current_aa_hid(int slot)
     return ERR_HANDLE_NOT_FOUND;
 }
 
+/* The largest cover of the user's current track in the buffer, or NULL; none while a
+   skip is on its way, as the handles above may still be those of the track it leaves */
+struct bitmap *playback_current_largest_art(void)
+{
+    struct track_info user_cur;
+    struct bitmap *largest = NULL;
+
+    if (skip_offset + skip_under_way != 0 || !track_list_user_current(0, &user_cur))
+        return NULL;
+    FOREACH_ALBUMART(i)
+    {
+        struct bitmap *bmp;
+        if (user_cur.aa_hid[i] >= 0
+            && bufgetdata(user_cur.aa_hid[i], 0, (void *)&bmp) > 0
+            && (!largest || bmp->width * bmp->height > largest->width * largest->height))
+            largest = bmp;
+    }
+    return largest;
+}
+
 /* The colour of the cover of the track that gives the handle above */
 uint32_t playback_current_cover_colour(void)
 {

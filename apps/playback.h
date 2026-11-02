@@ -42,6 +42,7 @@
  **/
 int playback_current_aa_hid(int slot);
 bool playback_current_has_art(void);
+struct bitmap *playback_current_largest_art(void);
 uint32_t playback_current_cover_colour(void);
 #ifdef AUDIO_FAST_SKIP_PREVIEW
 struct itunesdb_art;
