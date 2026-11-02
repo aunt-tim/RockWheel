@@ -207,6 +207,7 @@ extern void audio_pcmbuf_position_callback(unsigned long elapsed,
                                            off_t offset, unsigned int key);
 extern void audio_pcmbuf_track_change(bool pcmbuf);
 extern bool audio_pcmbuf_may_play(void);
+extern bool audio_pcmbuf_skip_pending(void);
 extern void audio_pcmbuf_sync_position(void);
 
 
@@ -395,6 +396,11 @@ static void stamp_chunk(struct chunkdesc *desc, unsigned long elapsed,
  * expects pcm_fill_state in tenth-% units (e.g. full pcm buffer is 10) */
 static void boost_codec_thread(int pcm_fill_state)
 {
+    /* What it's decoding is about to be dropped, and raised it would keep from running
+       the threads that drop it and show the next track */
+    if (audio_pcmbuf_skip_pending())
+        pcm_fill_state = 10;
+
     static const int8_t prios[11] =
     {
         PRIORITY_PLAYBACK_MAX,      /*   0 - 10% */
@@ -868,6 +874,12 @@ void pcmbuf_play_start(void)
         };
         mixer_channel_play_data(PCM_MIXER_CHAN_PLAYBACK, &cbs, NULL, 0);
     }
+}
+
+/* A skip has been asked for */
+void pcmbuf_skip_requested(void)
+{
+    boost_codec_thread(10);
 }
 
 /* Stop channel, empty and reset buffer */

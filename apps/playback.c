@@ -4038,6 +4038,11 @@ void audio_pcmbuf_track_change(bool pcmbuf)
 }
 
 /* May pcmbuf start PCM playback when the buffer is full enough? */
+bool audio_pcmbuf_skip_pending(void)
+{
+    return skip_offset != 0;
+}
+
 bool audio_pcmbuf_may_play(void)
 {
     return play_status == PLAY_PLAYING && !ff_rw_mode && !pause_on_track_change;
@@ -4198,6 +4203,7 @@ void audio_skip(int offset)
         /* Accumulate net manual skip count since the audio thread last
            processed one */
         skip_offset = accum;
+        pcmbuf_skip_requested();
 
         system_sound_play(SOUND_TRACK_SKIP);
 
