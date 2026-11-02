@@ -1944,6 +1944,59 @@ bool itunesdb_gains_ready(void)
     return ready;
 }
 
+/* A track's place is worked out from its hash, as the hashes are evenly spread, and a
+   read around it nearly always has it. A search by halves took a read for each step, and
+   the music starts only after this. */
+#define GAIN_WINDOW 4096
+static uint32_t find_sound_check(int fd, int count, uint64_t hash)
+{
+    static unsigned char window[GAIN_WINDOW] STORAGE_ALIGN_ATTR;
+    const int head = sizeof(struct flags_header), size = sizeof(struct gain_entry);
+    int lo = 0, hi = count - 1;
+    int at = (int)(((hash >> 32) * (uint64_t)count) >> 32);
+
+    for (int tries = 0; lo <= hi; tries++)
+    {
+        const off_t pos = head + (off_t)at * size;
+        /* the middle of a window on whole sectors, so all of the entry is in it */
+        const off_t start = pos > GAIN_WINDOW / 2
+                            ? ALIGN_DOWN(pos - GAIN_WINDOW / 2, 1024) : 0;
+        if (lseek(fd, start, SEEK_SET) != start)
+            return 0;
+        const ssize_t got = read(fd, window, GAIN_WINDOW);
+        if (got <= 0)
+            return 0;
+        const int first = start > head ? (start - head + size - 1) / size : 0;
+        const int last = MIN((int)((start + got - head) / size), count) - 1;
+        int low = MAX(first, lo), high = MIN(last, hi);
+        if (low > high)
+            return 0;
+        const int bottom = low, top = high;
+        while (low <= high)
+        {
+            const int mid = (low + high) / 2;
+            struct gain_entry entry;
+            memcpy(&entry, window + (head + (off_t)mid * size - start), size);
+            if (entry.hash == hash)
+                return entry.sound_check;
+            if (entry.hash < hash)
+                low = mid + 1;
+            else
+                high = mid - 1;
+        }
+        /* below the window, above it, or in it and not there */
+        if (low == bottom)
+            hi = bottom - 1;
+        else if (low > top)
+            lo = top + 1;
+        else
+            return 0;
+        /* next door the first time, as it's just outside when it's outside */
+        at = tries == 0 ? (low == bottom ? hi : lo) : (lo + hi) / 2;
+    }
+    return 0;
+}
+
 void itunesdb_set_track_gain(struct mp3entry *id3)
 {
     struct flags_header hdr;
@@ -1952,24 +2005,8 @@ void itunesdb_set_track_gain(struct mp3entry *id3)
         return;
     uint32_t sound_check = 0;
     if (read_gains_header(fd, &hdr))
-    {
-        const uint64_t hash = itunesdb_path_hash(id3->path);
-        int lo = 0, hi = (int)hdr.count - 1;
-        while (lo <= hi && !sound_check)
-        {
-            int mid = (lo + hi) / 2;
-            struct gain_entry entry;
-            lseek(fd, sizeof(hdr) + mid * sizeof(entry), SEEK_SET);
-            if (read(fd, &entry, sizeof(entry)) != sizeof(entry))
-                break;
-            if (entry.hash == hash)
-                sound_check = entry.sound_check;
-            else if (entry.hash < hash)
-                lo = mid + 1;
-            else
-                hi = mid - 1;
-        }
-    }
+        sound_check = find_sound_check(fd, (int)hdr.count,
+                                       itunesdb_path_hash(id3->path));
     close(fd);
     if (!sound_check)
         return;
