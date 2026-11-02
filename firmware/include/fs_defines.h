@@ -94,9 +94,15 @@
 #if MEMORYSIZE < 8
 #define DC_NUM_ENTRIES      32
 #define DC_MAP_NUM_ENTRIES  128
-#else
+#elif MEMORYSIZE < 32
 #define DC_NUM_ENTRIES      64
 #define DC_MAP_NUM_ENTRIES  256
+#else
+/* A directory of FAT32's 32 KB clusters takes 64 by itself, and with the FAT and
+   the root's each file opened in .rockbox at boot read its directory again: about
+   400 of an iPod's 970 reads at boot. 128 KB, with the room to spare. */
+#define DC_NUM_ENTRIES      256
+#define DC_MAP_NUM_ENTRIES  1024
 #endif /* MEMORYSIZE */
 
 /* increasing this will increase the total memory used by the cache; the

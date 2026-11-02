@@ -2767,12 +2767,19 @@ static void load_colours(void)
         if (read(fd, &h, sizeof(h)) == sizeof(h) && h.magic == COLOURS_MAGIC
             && h.version == COLOURS_VERSION)
         {
-            struct slide_colour c;
-            for (uint32_t i = 0; i < h.count && i < slides_index.count
-                 && read(fd, &c, sizeof(c)) == sizeof(c); i++)
+            /* a stretch at a time: a read for each took 0.28 s at boot */
+            static struct slide_colour c[256];
+            const uint32_t count = MIN(h.count, slides_index.count);
+            for (uint32_t i = 0; i < count; )
             {
-                if (c.key && c.key == slide_key(i))
-                    colours[i] = c.colour;
+                const ssize_t got = read(fd, c, MIN(count - i, ARRAYLEN(c)) * sizeof(*c));
+                if (got < (ssize_t)sizeof(*c))
+                    break;
+                for (size_t k = 0; k < got / sizeof(*c); k++, i++)
+                {
+                    if (c[k].key && c[k].key == slide_key(i))
+                        colours[i] = c[k].colour;
+                }
             }
         }
         close(fd);

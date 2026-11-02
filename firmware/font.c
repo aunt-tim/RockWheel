@@ -1152,6 +1152,13 @@ static int ucscharcmp(const void *a, const void *b)
 static NO_INLINE void glyph_cache_load(const char *font_path, struct font *pf)
 {
 #define MAX_SORT 256
+#ifndef BOOTLOADER
+    /* The fallback's glyphs are of other alphabets, few and far apart in its 2 MB:
+       loaded ahead from what was seen before, each needed reads of its own, 0.3 s
+       at boot for glyphs that may not show at all. They load as they're drawn. */
+    if (strcmp(font_path, FALLBACK_FONT) == 0)
+        return;
+#endif
     if (pf->fd >= 0) {
         int i, size, fd;
         unsigned char tmp[sizeof(ucschar_t)];
