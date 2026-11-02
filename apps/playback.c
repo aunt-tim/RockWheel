@@ -2016,6 +2016,7 @@ static int audio_load_albumart(struct track_info *infop,
         order[k] = i;
     }
 
+    bool told = false;
     for (int n = 0; n < MAX_MULTIPLE_AA; n++)
     {
         int i = order[n];
@@ -2102,7 +2103,23 @@ static int audio_load_albumart(struct track_info *infop,
             }
 
             *aa_hid = hid;
+
+            /* Now Playing shows the two smallest: it needn't wait for the larger
+               one, or for the audio to open, to see them. It's told, as otherwise
+               it looks when it next wakes, up to 200 ms from now. */
+            if (n == 1 && is_current_track)
+            {
+                track_info_sync(infop);
+                button_queue_post(BUTTON_NONE, 0);
+                told = true;
+            }
         }
+    }
+
+    if (!told && is_current_track)
+    {
+        track_info_sync(infop);
+        button_queue_post(BUTTON_NONE, 0);
     }
 
     return true;

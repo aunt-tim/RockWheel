@@ -1421,6 +1421,10 @@ static void track_info_callback(unsigned short id, void *param)
     if (id == PLAYBACK_EVENT_NEXTTRACKID3_AVAILABLE)
         state->nid3 = audio_next_track();
     skin_request_full_update(WPS);
+    /* A track that was ready ahead has its cover to show now, and the loop would see it
+       only when it next wakes. Without one it's still on its way, and it's told then. */
+    if (id == PLAYBACK_EVENT_TRACK_CHANGE && playback_current_aa_hid(0) >= 0)
+        button_queue_post(BUTTON_NONE, 0);
 }
 
 static void wps_state_init(void)
