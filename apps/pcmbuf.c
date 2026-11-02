@@ -461,6 +461,11 @@ static void commit_write_buffer(size_t size)
 /* Request space in the buffer for writing output samples */
 void * pcmbuf_request_buffer(int *count)
 {
+    /* What it would decode now is dropped once playback takes the skip: it waits for
+       that, and leaves the time to the threads that take it and show the next track */
+    if (audio_pcmbuf_skip_pending())
+        return NULL;
+
     size_t size = *count * PCMBUF_SAMPLE_SIZE;
 
 #ifdef HAVE_CROSSFADE
