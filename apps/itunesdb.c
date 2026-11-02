@@ -1027,19 +1027,31 @@ static void writer_flush(struct writer *w)
     w->used = 0;
 }
 
+/* Fills each block to the end, whatever falls across it, as a write that starts or ends
+   inside a sector costs the disk several commands where a whole block costs one */
 static void writer_put(struct writer *w, const void *data, size_t len)
 {
-    if (w->used + len > sizeof(w->buf))
-        writer_flush(w);
-    /* more than the buffer holds, as the slides of a large library are */
-    if (len > sizeof(w->buf))
+    const char *from = data;
+    while (len > 0)
     {
-        if (write(w->fd, data, len) != (ssize_t)len)
-            w->ok = false;
-        return;
+        /* more than the buffer holds, as the slides of a large library are */
+        if (w->used == 0 && len >= sizeof(w->buf))
+        {
+            const size_t whole = len - len % sizeof(w->buf);
+            if (write(w->fd, from, whole) != (ssize_t)whole)
+                w->ok = false;
+            from += whole;
+            len -= whole;
+            continue;
+        }
+        const size_t part = MIN(len, sizeof(w->buf) - w->used);
+        memcpy(w->buf + w->used, from, part);
+        w->used += part;
+        from += part;
+        len -= part;
+        if (w->used == sizeof(w->buf))
+            writer_flush(w);
     }
-    memcpy(w->buf + w->used, data, len);
-    w->used += len;
 }
 
 static bool writer_close(struct writer *w)
@@ -1675,8 +1687,7 @@ void itunesdb_write_playcounts(void)
         goto done;
     }
 
-    fd = open(PLAYCOUNTS_FILE ".tmp", O_WRONLY | O_CREAT | O_TRUNC, 0666);
-    if (fd < 0)
+    if (!writer_open(&out, PLAYCOUNTS_FILE ".tmp"))
         goto done;
     unsigned char buf[PLAYCOUNTS_HDR];
     memset(buf, 0, sizeof(buf));
@@ -1684,11 +1695,9 @@ void itunesdb_write_playcounts(void)
     put32(buf + 4, PLAYCOUNTS_HDR);
     put32(buf + 8, PLAYCOUNTS_ENTRY);
     put32(buf + 12, pc.count);
-    ok = write(fd, buf, PLAYCOUNTS_HDR) == PLAYCOUNTS_HDR;
+    writer_put(&out, buf, PLAYCOUNTS_HDR);
 
-    static unsigned char entries[PLAYCOUNTS_ENTRY * 64];
-    size_t used = 0;
-    for (int i = 0; ok && i < pc.count; i++)
+    for (int i = 0; i < pc.count; i++)
     {
         const struct state_entry *st = &pc.state[i];
         const struct played *now = &pc.now[i];
@@ -1701,21 +1710,14 @@ void itunesdb_write_playcounts(void)
                 last = now->lastplayed + MAC_EPOCH;
             rating = now->rating * 10;
         }
-        unsigned char *e = entries + used;
-        memset(e, 0, PLAYCOUNTS_ENTRY);
+        unsigned char e[PLAYCOUNTS_ENTRY];
+        memset(e, 0, sizeof(e));
         put32(e, plays);
         put32(e + 4, last);
         put32(e + 12, rating);
-        used += PLAYCOUNTS_ENTRY;
-        if (used == sizeof(entries) || i == pc.count - 1)
-        {
-            ok = write(fd, entries, used) == (ssize_t)used;
-            used = 0;
-        }
+        writer_put(&out, e, sizeof(e));
     }
-    close(fd);
-    fd = -1;
-    if (ok)
+    if (writer_close(&out))
     {
         remove(PLAYCOUNTS_FILE);
         rename(PLAYCOUNTS_FILE ".tmp", PLAYCOUNTS_FILE);
