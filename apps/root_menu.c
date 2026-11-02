@@ -1128,12 +1128,14 @@ static long shown_at;
    second as the theme's backdrop can come back meanwhile */
 static void library_update_show(const char *text, int percent)
 {
-    if (text == shown_text && percent == shown_percent
-        && TIME_BEFORE(current_tick, shown_at + HZ))
+    const bool same_screen = text == shown_text
+        && TIME_BEFORE(current_tick, shown_at + HZ);
+    if (same_screen && percent == shown_percent)
         return;
     shown_text = text;
     shown_percent = percent;
-    shown_at = current_tick;
+    if (!same_screen)
+        shown_at = current_tick;
 
     const int bar_w = 140, bar_h = 6;
     lcd_set_viewport(NULL);
@@ -1145,10 +1147,15 @@ static void library_update_show(const char *text, int percent)
 #else
     int y = (LCD_HEIGHT - 96) / 2;
 #endif
-    lcd_set_background(LCD_BLACK);
-    lcd_clear_display();
+    if (!same_screen)
+    {
+        lcd_set_background(LCD_BLACK);
+        lcd_clear_display();
 #ifdef STOCK_BOOT_LOGO
-    lcd_bmp(&bm_bootlogo, (LCD_WIDTH - BMPWIDTH_bootlogo) / 2, y);
+        lcd_bmp(&bm_bootlogo, (LCD_WIDTH - BMPWIDTH_bootlogo) / 2, y);
+#endif
+    }
+#ifdef STOCK_BOOT_LOGO
     y += BMPHEIGHT_bootlogo;
 #else
     y += 96;
@@ -1159,6 +1166,12 @@ static void library_update_show(const char *text, int percent)
     lcd_fillrect(x, y, bar_w, bar_h);
     lcd_set_foreground(LCD_WHITE);
     lcd_fillrect(x, y, bar_w * percent / 100, bar_h);
+    if (same_screen)
+    {
+        /* its many small steps were a good part of the update's time */
+        lcd_update_rect(x, y, bar_w, bar_h);
+        return;
+    }
 
     int w, h;
     lcd_setfont(FONT_UI);

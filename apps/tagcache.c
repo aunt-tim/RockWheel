@@ -4966,6 +4966,11 @@ static bool delete_entry_in(long idx_id, int masterfd, long count, int *fds,
        many minutes; those are left to one sweep after */
     for (tag = 0; tag < TAG_COUNT; tag++)
         in_use[tag] = sweep_after;
+#ifdef HAVE_TC_RAMCACHE
+    /* its own, and the sweep from memory has no names to go by */
+    if (sweep_after && tc_stat.ramcache)
+        in_use[tag_filename] = 0;
+#endif
 
     lseek(masterfd, sizeof(struct master_header), SEEK_SET);
     for (i = 0; i < count && !sweep_after; i++)
@@ -5132,10 +5137,80 @@ static bool seek_in(const int32_t *sorted, int n, int32_t seek)
     return false;
 }
 
+#ifdef HAVE_TC_RAMCACHE
+/* The same from the strings in memory, which lie as they do in the files, so only a
+   string to delete goes to the disk, with a bit for each place a string can start in
+   place of a sorted list. Going over the files took much longer than the whole import
+   around it. Filenames aren't in memory: delete_entry_in() has done those. */
+static void sweep_unused_tags_ram(long count, int *fds)
+{
+    tcrc_buffer_lock(); /* the strings are movable, and writing lets others run */
+    for (int tag = 0; tag < TAG_COUNT; tag++)
+    {
+        struct tagcache_header tch;
+        if (TAGCACHE_IS_NUMERIC(tag) || tag == tag_filename)
+            continue;
+
+        char *const strings = tcramcache.hdr->tags[tag];
+        const long entries = tcramcache.hdr->entry_count[tag];
+        long size = sizeof(struct tagcache_header);
+        for (long i = 0; i < entries; i++)
+        {
+            const struct tagfile_entry *tfe =
+                (const struct tagfile_entry *)&strings[size];
+            if (tfe->tag_length <= 0)
+                break;
+            size += sizeof(struct tagfile_entry) + tfe->tag_length;
+        }
+
+        const size_t words = size / (4 * 32) + 1;
+        const int handle = core_alloc(words * sizeof(uint32_t));
+        if (handle <= 0)
+            continue; /* left in the files, shown in no list of a tag's own */
+        core_pin(handle);
+        uint32_t *used = core_get_data(handle);
+        memset(used, 0, words * sizeof(uint32_t));
+        for (long i = 0; i < count; i++)
+        {
+            const struct index_entry *e = &tcramcache.hdr->indices[i];
+            const int32_t seek = e->tag_seek[tag];
+            if (!(e->flag & FLAG_DELETED) && seek >= 0 && seek < size)
+                used[seek / (4 * 32)] |= 1u << ((seek / 4) % 32);
+        }
+
+        for (long pos = sizeof(struct tagcache_header); pos < size; )
+        {
+            struct tagfile_entry *tfe = (struct tagfile_entry *)&strings[pos];
+            if (tfe->tag_data[0] != '\0'
+                && !(used[pos / (4 * 32)] & (1u << ((pos / 4) % 32))))
+            {
+                if (fds[tag] < 0 && (fds[tag] = open_tag_fd(&tch, tag, true)) < 0)
+                    break;
+                lseek(fds[tag], pos + sizeof(struct tagfile_entry), SEEK_SET);
+                write(fds[tag], "", 1);
+                str_setlen(tfe->tag_data, 0);
+            }
+            pos += sizeof(struct tagfile_entry) + tfe->tag_length;
+        }
+        core_unpin(handle);
+        core_free(handle);
+        do_timed_yield();
+    }
+    tcrc_buffer_unlock();
+}
+#endif /* HAVE_TC_RAMCACHE */
+
 /* Every string of the tag files that no entry uses deletes, as
    delete_entry_in() does for one entry's, in one pass over each file */
 static void sweep_unused_tags(int masterfd, long count, int *fds)
 {
+#ifdef HAVE_TC_RAMCACHE
+    if (tc_stat.ramcache)
+    {
+        sweep_unused_tags_ram(count, fds);
+        return;
+    }
+#endif
     int handle = core_alloc(count * sizeof(int32_t));
     if (handle <= 0)
         return; /* left in the files, shown in no list of a tag's own */
@@ -5437,21 +5512,21 @@ static bool load_tagcache(void)
     current_tcmh = tcmh;
 
     /* Load the master index table. */
-    for (int i = 0; i < tcmh.tch.entry_count; i++)
+    /* in one read, and not a call for each of them */
+    if (tcmh.tch.entry_count < 0
+        || tcmh.tch.entry_count > bytesleft / (ssize_t)sizeof(struct index_entry))
     {
-        bytesleft -= sizeof(struct index_entry);
-        if (bytesleft < 0)
-        {
-            logf("too big tagcache.");
-            goto failure;
-        }
-
-        int rc = read_index_entries(fd, &tcramcache.hdr->indices[i], 1);
-        if (rc != sizeof (struct index_entry))
-        {
-            logf("read error #10");
-            goto failure;
-        }
+        logf("too big tagcache.");
+        goto failure;
+    }
+    const ssize_t indices_size =
+        tcmh.tch.entry_count * (ssize_t)sizeof(struct index_entry);
+    bytesleft -= indices_size;
+    if (read_index_entries(fd, tcramcache.hdr->indices, tcmh.tch.entry_count)
+        != indices_size)
+    {
+        logf("read error #10");
+        goto failure;
     }
 
     close(fd);
@@ -6507,8 +6582,10 @@ static void tagcache_thread(void)
     {
         /* what playback needs first: it is quick, and the old covers point
            into ithmb files that Finder has rewritten */
+        cpu_boost(true);
         import_total = itunesdb_import_tracks(true, &import_done,
                                               &import_total);
+        cpu_boost(false);
         import_done = 0;
         import_phase = TAGCACHE_IMPORT_SCANNING;
         queue_post(&tagcache_queue, Q_IMPORT_ITUNES, 0);
@@ -6579,8 +6656,10 @@ static void tagcache_thread(void)
 
             case Q_SYNCED:
                 /* as at boot after a sync */
+                cpu_boost(true);
                 import_total = itunesdb_import_tracks(true, &import_done,
                                               &import_total);
+                cpu_boost(false);
                 import_done = 0;
                 import_phase = TAGCACHE_IMPORT_SCANNING;
                 /* fallthrough */
@@ -6589,9 +6668,11 @@ static void tagcache_thread(void)
                    iTunesDB says about them. Cut short, as by USB, all of
                    it is tried again: iTunesDB still differs from its stamp,
                    so after USB or at the next boot */
+                cpu_boost(true);
                 if (!update_and_reload())
                 {
                     import_phase = TAGCACHE_IMPORT_NONE;
+                    cpu_boost(false);
                     break;
                 }
                 check_skips_synced = true;
@@ -6610,6 +6691,7 @@ static void tagcache_thread(void)
                                      check_event_queue);
 #endif
                 import_phase = TAGCACHE_IMPORT_NONE;
+                cpu_boost(false);
                 break ;
 
             case Q_START_SCAN:

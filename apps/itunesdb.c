@@ -74,6 +74,8 @@ static int db_alloc(size_t size)
 #define STATE_FILE      ROCKBOX_DIR "/itunesdb.dat"
 #define STATE_MAGIC     0x54494252 /* "RBIT" */
 #define STATE_VERSION   1
+/* the database's commit id when the last import had gone through all of it */
+#define IMPORTED_FILE   ROCKBOX_DIR "/itunesdb_imported.dat"
 /* the playlists made from iTunesDB, removed again on the next import */
 #define PLAYLISTS_FILE  ROCKBOX_DIR "/itunesdb_playlists.txt"
 
@@ -1284,10 +1286,46 @@ static bool load_pending(void)
         unload_pending();
         return false;
     }
+    return true;
+}
+
+static void index_pending(void)
+{
     for (uint32_t i = 0; i < pend.hdr.count; i++)
         pend.by_hash[i] = i;
     qsort(pend.by_hash, pend.hdr.count, sizeof(uint32_t), cmp_pending_hash);
-    return true;
+}
+
+/* Whether the tracks and their counts are those of the last import, and the database
+   is the one it went through. Compares in the room of the index, not made yet. */
+static bool pending_is_imported(void)
+{
+    int commitid;
+    int fd = open(IMPORTED_FILE, O_RDONLY);
+    if (fd < 0)
+        return false;
+    bool ok = read(fd, &commitid, sizeof(commitid)) == sizeof(commitid)
+        && commitid == tagcache_get_commitid();
+    close(fd);
+    if (!ok)
+        return false;
+
+    struct state_header hdr;
+    fd = open(STATE_FILE, O_RDONLY);
+    if (fd < 0)
+        return false;
+    ok = read(fd, &hdr, sizeof(hdr)) == sizeof(hdr) && hdr.magic == STATE_MAGIC
+        && hdr.version == STATE_VERSION && hdr.count == pend.hdr.count;
+    const size_t total = pend.hdr.count * sizeof(struct state_entry);
+    const size_t room = pend.hdr.count * sizeof(uint32_t);
+    for (size_t at = 0; ok && at < total; at += room)
+    {
+        const size_t part = MIN(room, total - at);
+        ok = read(fd, pend.by_hash, part) == (ssize_t)part
+            && !memcmp(pend.by_hash, (const char *)pend.tracks + at, part);
+    }
+    close(fd);
+    return ok;
 }
 
 static const struct state_entry *find_pending(uint64_t hash)
@@ -1452,12 +1490,57 @@ static bool db_load(void)
     return true;
 }
 
+/* Only the new iTunesDB's stamp, over the old one: the file's size stays and so do its
+   tracks, so a cut leaves it whole */
+static bool stamp_state(void)
+{
+    struct state_header hdr = {
+        STATE_MAGIC, STATE_VERSION, pend.hdr.db_size, pend.hdr.db_mtime,
+        pend.hdr.count
+    };
+    const int fd = open(STATE_FILE, O_WRONLY);
+    if (fd < 0)
+        return false;
+    const bool ok = write(fd, &hdr, sizeof(hdr)) == sizeof(hdr);
+    close(fd);
+    return ok;
+}
+
+static void note_imported(void)
+{
+    const int commitid = tagcache_get_commitid();
+    const int fd = open(IMPORTED_FILE, O_WRONLY|O_CREAT|O_TRUNC, 0666);
+    if (fd >= 0)
+    {
+        write(fd, &commitid, sizeof(commitid));
+        close(fd);
+    }
+}
+
 void itunesdb_import(void)
 {
     if (!load_pending())
         return; /* the next boot reads iTunesDB again */
-    if (tagcache_update_runtime(update_entry, NULL) && write_state())
-        remove(PENDING_FILE);
+    if (pending_is_imported())
+    {
+        /* A sync with nothing new: nothing to set and nothing to remove. Plays that
+           Finder hasn't taken stay, to go in Play Counts next time. */
+        if (stamp_state())
+            remove(PENDING_FILE);
+    }
+    else
+    {
+        /* not the same as what went through all of it, if cut short */
+        remove(IMPORTED_FILE);
+        index_pending();
+        if (tagcache_update_runtime(update_entry, NULL) && write_state())
+        {
+            remove(PENDING_FILE);
+            /* one that couldn't read all of iTunesDB has removed nothing */
+            if (pend.hdr.complete)
+                note_imported();
+        }
+    }
     logf("itunesdb: %lu tracks imported", (unsigned long)pend.hdr.count);
     unload_pending();
 }
