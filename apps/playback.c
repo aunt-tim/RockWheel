@@ -2017,6 +2017,7 @@ static int audio_load_albumart(struct track_info *infop,
     }
 
     bool told = false;
+    int rank = -1;
     for (int n = 0; n < MAX_MULTIPLE_AA; n++)
     {
         int i = order[n];
@@ -2027,8 +2028,17 @@ static int audio_load_albumart(struct track_info *infop,
 
         /* albumart_slots may change during a yield of bufopen,
          * but that's no problem */
-        if (*aa_hid >= 0 || *aa_hid == ERR_UNSUPPORTED_TYPE ||
-            !albumart_slots[i].used)
+        if (!albumart_slots[i].used)
+            continue;
+        rank++;
+#ifdef ITUNESDB_HAVE_ART
+        /* Larger than Finder's covers and only for the panel beside the menus, which
+           makes it when it shows: scaling it took longer than the rest of a cover, for
+           every track, with the screen and the music waiting */
+        if (have_ipod_art && rank >= 2)
+            continue;
+#endif
+        if (*aa_hid >= 0 || *aa_hid == ERR_UNSUPPORTED_TYPE)
             continue;
 
         memset(&user_data, 0, sizeof(user_data));
@@ -2104,10 +2114,10 @@ static int audio_load_albumart(struct track_info *infop,
 
             *aa_hid = hid;
 
-            /* Now Playing shows the two smallest: it needn't wait for the larger
-               one, or for the audio to open, to see them. It's told, as otherwise
-               it looks when it next wakes, up to 200 ms from now. */
-            if (n == 1 && is_current_track)
+            /* Now Playing shows the two smallest: it needn't wait for the audio to
+               open to see them. It's told, as otherwise it looks when it next wakes,
+               up to 200 ms from now. */
+            if (rank == 1 && is_current_track)
             {
                 track_info_sync(infop);
                 button_queue_post(BUTTON_NONE, 0);
@@ -4295,6 +4305,20 @@ static bool track_list_cover_current(struct track_info *infop)
 }
 
 /* Return which album art handle is current for the user in the given slot */
+/* Whether any cover of the user's current track is in the buffer */
+bool playback_current_has_art(void)
+{
+    struct track_info user_cur;
+    if (!track_list_cover_current(&user_cur))
+        return false;
+    FOREACH_ALBUMART(i)
+    {
+        if (user_cur.aa_hid[i] >= 0)
+            return true;
+    }
+    return false;
+}
+
 int playback_current_aa_hid(int slot)
 {
     struct track_info user_cur;

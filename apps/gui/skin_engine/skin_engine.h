@@ -71,6 +71,8 @@ const fb_data *skin_backdrop_buffer(int backdrop_id);
 #ifdef HAVE_ALBUMART
 /* A %Cd's handle, or SKIN_ART_KEPT for the cover shown until the next one is ready */
 #define SKIN_ART_KEPT (-2)
+/* or for the cover beside the menus, made for it */
+#define SKIN_ART_MENU (-3)
 int skin_art_handle(const struct wps_data *data, int index, int handle);
 bool skin_art_found(const struct wps_data *data, int handle);
 bool skin_art_kept_expired(void);

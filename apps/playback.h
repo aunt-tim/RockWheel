@@ -41,6 +41,7 @@
  * Returns the handle id of the buffered albumart for the given slot id
  **/
 int playback_current_aa_hid(int slot);
+bool playback_current_has_art(void);
 uint32_t playback_current_cover_colour(void);
 
 /*

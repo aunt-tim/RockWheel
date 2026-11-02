@@ -53,6 +53,7 @@
 #include "bmp.h"
 #ifdef HAVE_ALBUMART
 #include "albumart.h"
+#include "itunesdb.h"
 #endif
 
 #include "cuesheet.h"
@@ -807,10 +808,9 @@ static void keep_album_art(int index, int handle)
     kept_art[index].handle = handle;
 }
 
-static void draw_kept_album_art(struct gui_wps *gwps, struct skin_albumart *aa,
-                                int index)
+static void draw_art_pixels(struct gui_wps *gwps, struct skin_albumart *aa,
+                            const fb_data *pixels, int width, int height)
 {
-    const int width = kept_art[index].width, height = kept_art[index].height;
     int x = aa->x, y = aa->y;
 
     if (aa->xalign & WPS_ALBUMART_ALIGN_RIGHT)
@@ -822,17 +822,70 @@ static void draw_kept_album_art(struct gui_wps *gwps, struct skin_albumart *aa,
     else if (aa->yalign & WPS_ALBUMART_ALIGN_CENTER)
         y += (aa->height - height) / 2;
 
-    gwps->display->bitmap_part(kept_art[index].pixels, 0, 0,
+    gwps->display->bitmap_part(pixels, 0, 0,
                                STRIDE(gwps->display->screen_type, width, height),
                                x, y, width, height);
 }
+
+static void draw_kept_album_art(struct gui_wps *gwps, struct skin_albumart *aa,
+                                int index)
+{
+    draw_art_pixels(gwps, aa, kept_art[index].pixels, kept_art[index].width,
+                    kept_art[index].height);
+}
+
+#ifdef ITUNESDB_HAVE_ART
+/* The cover beside the menus. It's larger than any Finder keeps and the panel is rarely
+   on screen when a track changes, so playback doesn't load it, and it's scaled here
+   when it's to be shown, and again only for another cover. */
+#define ART_MENU_SIZE LCD_HEIGHT
+static struct {
+    fb_data pixels[ART_MENU_SIZE * ART_MENU_SIZE];
+    short width, height;
+    uint32_t offset;
+    char path[sizeof(((struct itunesdb_art *)0)->path)];
+} menu_art;
+
+static bool menu_art_ready(const struct wps_data *data)
+{
+    struct skin_albumart *aa = SKINOFFSETTOPTR(get_skin_buffer((struct wps_data *)data),
+                                               data->albumart);
+    struct mp3entry *id3 = audio_current_track();
+    struct itunesdb_art art;
+    if (!aa || !id3 || !(audio_status() & AUDIO_STATUS_PLAY)
+        || global_settings.album_art == AA_OFF
+        || !itunesdb_find_art(id3->path, &art))
+        return false;
+    if (menu_art.width > 0 && menu_art.offset == art.offset
+        && !strcmp(menu_art.path, art.path))
+        return true;
+
+    struct bitmap bm;
+    memset(&bm, 0, sizeof(bm));
+    bm.width = MIN(aa->width, ART_MENU_SIZE);
+    bm.height = MIN(aa->height, ART_MENU_SIZE);
+    bm.data = (unsigned char *)menu_art.pixels;
+    menu_art.width = 0;
+    if (itunesdb_load_art(&art, &bm, sizeof(bm) + sizeof(menu_art.pixels)) < 0)
+        return false;
+    menu_art.width = bm.width;
+    menu_art.height = bm.height;
+    menu_art.offset = art.offset;
+    strcpy(menu_art.path, art.path);
+    return true;
+}
+#endif /* ITUNESDB_HAVE_ART */
 
 /* What %?C says: it comes before the %Cd, and a theme may change what it shows by
    it, so going without a cover has to start here already */
 bool skin_art_found(const struct wps_data *data, int handle)
 {
     if (data != skin_get_gwps(WPS, SCREEN_MAIN)->data)
+#ifdef ITUNESDB_HAVE_ART
+        return handle >= 0 || menu_art_ready(data);
+#else
         return handle >= 0;
+#endif
 
     art_seen(0, handle);
     return handle >= 0 || art_is_kept(0);
@@ -841,7 +894,13 @@ bool skin_art_found(const struct wps_data *data, int handle)
 int skin_art_handle(const struct wps_data *data, int index, int handle)
 {
     if (data != skin_get_gwps(WPS, SCREEN_MAIN)->data)
+    {
+#ifdef ITUNESDB_HAVE_ART
+        if (handle < 0 && menu_art_ready(data))
+            return SKIN_ART_MENU;
+#endif
         return handle;
+    }
 
     art_seen(index, handle);
     if (handle < 0 && kept_art[index].width > 0 && art_is_kept(index))
@@ -892,6 +951,13 @@ void wps_display_images(struct gui_wps *gwps, struct viewport* vp)
             draw_kept_album_art(gwps, aa, i);
             aa->draw_handle = -1;
         }
+#ifdef ITUNESDB_HAVE_ART
+        else if (aa && aa->draw_handle == SKIN_ART_MENU)
+        {
+            draw_art_pixels(gwps, aa, menu_art.pixels, menu_art.width, menu_art.height);
+            aa->draw_handle = -1;
+        }
+#endif
     }
 #endif
     struct skin_token_list *list = SKINOFFSETTOPTR(get_skin_buffer(data), data->images);
