@@ -42,6 +42,7 @@ bool itunesdb_synced_path(const char *path);
    itunesdb_import_tracks() read after the sync. Runs on the tagcache thread
    once the database has been updated from the files */
 void itunesdb_import(void);
+void itunesdb_forget_state(void);
 
 /* Writes iPod_Control/iTunes/Play Counts like the stock firmware, for Finder
    to take what was played and rated on the iPod into the library: plays

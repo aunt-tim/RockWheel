@@ -1545,6 +1545,15 @@ void itunesdb_import(void)
     unload_pending();
 }
 
+/* The database is going, and its counts and ratings with it: Play Counts must not
+   give Finder those as new. The next boot imports them again, and knows every track
+   as new, whose tags it then has from iTunesDB and needn't read from the files. */
+void itunesdb_forget_state(void)
+{
+    remove(STATE_FILE);
+    remove(IMPORTED_FILE);
+}
+
 /* Play Counts, as the stock firmware writes it: a header, then for every
    track in iTunesDB's order its plays since the sync, when it was last
    played, and its rating. Finder adds the plays to the library, takes the

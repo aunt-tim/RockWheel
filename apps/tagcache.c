@@ -748,6 +748,9 @@ static void remove_files(void)
     tc_stat.ready = false;
     tc_stat.ramcache = false;
     tc_stat.econ = false;
+#if !defined(__PCTOOL__) && !defined(PLUGIN)
+    itunesdb_forget_state();
+#endif
     remove_db_file(TAGCACHE_FILE_MASTER);
     for (i = 0; i < TAG_COUNT; i++)
     {
