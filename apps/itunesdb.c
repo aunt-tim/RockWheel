@@ -2105,6 +2105,7 @@ struct slide_header {
     uint16_t width, height;
     uint64_t key;
 };
+_Static_assert(sizeof(struct slide_header) + 15 <= ITUNESDB_SLIDE_ROOM, "no room");
 
 /* of the slide in that place, with an index_header in front of them */
 struct slide_colour {
@@ -3034,17 +3035,26 @@ int itunesdb_load_slide(const struct itunesdb_art *art, void *buf,
     if (fd < 0)
         return -1;
     off_t pos = (off_t)(art->slide - 1) * SLIDE_SLOT;
-    bool ok = lseek(fd, pos, SEEK_SET) == pos
-              && read(fd, &head, sizeof(head)) == sizeof(head)
-              && (head.magic == SLIDE_MAGIC || head.magic == SLIDE_UNSURE)
-              && head.key == key
-              && head.width <= ITUNESDB_SLIDE_SIZE
-              && head.height <= ITUNESDB_SLIDE_SIZE;
-    ssize_t size = ok ? head.width * head.height * sizeof(fb_data) : 0;
-    ok = ok && read(fd, buf, size) == size;
+    /* All of it in one read, with its header, to where DMA can reach, as the slots lie
+       on whole sectors. Then down to where it was asked for, which is in its way
+       only as far as ITUNESDB_SLIDE_ROOM. */
+    char *at = buf;
+    size_t room = ITUNESDB_SLIDE_ROOM + SLIDE_PIXELS * sizeof(fb_data);
+    STORAGE_ALIGN_BUFFER(at, room);
+    (void)room;
+    const ssize_t whole = sizeof(head) + SLIDE_PIXELS * sizeof(fb_data);
+    bool ok = lseek(fd, pos, SEEK_SET) == pos && read(fd, at, whole) == whole;
     close(fd);
     if (!ok)
         return -1;
+    memcpy(&head, at, sizeof(head));
+    if ((head.magic != SLIDE_MAGIC && head.magic != SLIDE_UNSURE)
+        || head.key != key
+        || head.width > ITUNESDB_SLIDE_SIZE
+        || head.height > ITUNESDB_SLIDE_SIZE)
+        return -1;
+    const ssize_t size = head.width * head.height * sizeof(fb_data);
+    memmove(buf, at + sizeof(head), size);
     *width = head.width;
     *height = head.height;
     return size;

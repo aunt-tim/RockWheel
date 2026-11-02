@@ -3159,7 +3159,8 @@ static int read_ipod_cover(const int slide_index, const int prio)
     {
         do {
             hid = rb->buflib_alloc(&buf_ctx, sizeof(struct dim)
-                  + sizeof(pix_t) * ITUNESDB_SLIDE_SIZE * ITUNESDB_SLIDE_SIZE);
+                  + sizeof(pix_t) * ITUNESDB_SLIDE_SIZE * ITUNESDB_SLIDE_SIZE
+                  + ITUNESDB_SLIDE_ROOM);
         } while (hid < 0 && free_slide_prio(prio));
         if (hid < 0)
             return COVER_NO_ROOM;

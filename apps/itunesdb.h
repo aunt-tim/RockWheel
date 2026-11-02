@@ -120,6 +120,8 @@ struct itunesdb_art {
 
 /* Cover Flow's slides, one an album, made after an import: covers this
    many pixels a side at most, as PictureFlow shows the one in the middle */
+/* what itunesdb_load_slide() needs in its buffer beyond the slide */
+#define ITUNESDB_SLIDE_ROOM 32
 #define ITUNESDB_SLIDE_SIZE MIN(MAX(LCD_HEIGHT / 2, LCD_WIDTH * 2 / 5), \
                                 LCD_HEIGHT * 2 / 3)
 
