@@ -1007,7 +1007,8 @@ struct writer {
     int fd;
     size_t used;
     bool ok;
-    char buf[WRITE_BUF_SIZE];
+    /* behind the bool it wasn't on a word, and all of it went without DMA */
+    char buf[WRITE_BUF_SIZE] STORAGE_ALIGN_ATTR;
 };
 
 static struct writer out;
