@@ -1954,6 +1954,7 @@ static struct buflib_callbacks ops = {
     .move_callback = move_callback,
     .shrink_callback = NULL,
 };
+static int indices_handle;
 
 /******************************************************************************/
 /******************************************************************************/
@@ -1985,6 +1986,7 @@ void playlist_init(void)
     playlist->max_playlist_size = global_settings.max_files_in_playlist;
 
     handle = core_alloc_ex(playlist->max_playlist_size * sizeof(*playlist->indices), &ops);
+    indices_handle = handle;
     playlist->indices = core_get_data(handle);
 
     empty_playlist_unlocked(playlist, true);
@@ -2192,6 +2194,17 @@ int playlist_create_from_index(const char *dir, const char *file, int fd,
     {
         uint32_t offsets[256];
         int have = 0;
+        /* in one read where the places are of that size, not the simulator's. It's
+           the only one of the indices' uses that lets others run meanwhile. */
+        if (sizeof(*playlist->indices) == sizeof(uint32_t))
+        {
+            const ssize_t bytes = count * sizeof(uint32_t);
+            core_pin(indices_handle);
+            if (read(fd, playlist->indices, bytes) != bytes)
+                status = -1;
+            core_unpin(indices_handle);
+            have = count;
+        }
         while (have < count && status == 0)
         {
             int n = MIN(count - have, (int)ARRAYLEN(offsets));
