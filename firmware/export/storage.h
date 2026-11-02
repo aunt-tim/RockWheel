@@ -54,6 +54,7 @@ enum
     Q_STORAGE_TICK = 1,
     Q_STORAGE_SLEEP,
     Q_STORAGE_SLEEPNOW,
+    Q_STORAGE_WAKE_AHEAD,
 #ifdef STORAGE_CLOSE
     Q_STORAGE_CLOSE,
 #endif
@@ -132,11 +133,15 @@ static inline void stub_storage_spindown(int timeout) { (void)timeout; }
 static inline int stub_storage_event(long id, intptr_t data)
     { return 0; (void)id; (void)data; }
 static inline void storage_sleep(void) {};
+static inline void storage_wake_ahead(void) {};
 #else /* ndef HAVE_HOSTFS */
 #if (CONFIG_STORAGE & STORAGE_ATA)
 void storage_sleep(void);
+/* the disk will soon be wanted: one that takes long to come on starts now */
+void storage_wake_ahead(void);
 #else
 static inline void storage_sleep(void) {};
+static inline void storage_wake_ahead(void) {};
 #endif
 #endif /* HAVE_HOSTFS */
 

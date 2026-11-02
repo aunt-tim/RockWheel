@@ -193,6 +193,7 @@ static void NORETURN_ATTR storage_thread(void)
 
 #if (CONFIG_STORAGE & STORAGE_ATA)
         case Q_STORAGE_SLEEP:
+        case Q_STORAGE_WAKE_AHEAD:
             storage_event_send(bdcast, ev.id, 0);
             break;
 #endif
@@ -251,6 +252,13 @@ void storage_sleep(void)
 {
     if (storage_thread_id) {
         queue_post(&storage_queue, Q_STORAGE_SLEEP, 0);
+    }
+}
+
+void storage_wake_ahead(void)
+{
+    if (storage_thread_id) {
+        queue_post(&storage_queue, Q_STORAGE_WAKE_AHEAD, 0);
     }
 }
 #endif /* (CONFIG_STORAGE & STORAGE_ATA) */

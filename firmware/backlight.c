@@ -38,6 +38,7 @@
 #include "button.h"
 #include "timer.h"
 #include "backlight.h"
+#include "storage.h"
 #include "lcd.h"
 #include "screendump.h"
 
@@ -518,6 +519,9 @@ static void backlight_update_state(void)
     }
     else
     {
+        /* lighting up: the disk will soon be wanted */
+        if (!is_backlight_on(true))
+            storage_wake_ahead();
         backlight_timer = timeout;
 
 #ifdef HAVE_LCD_SLEEP

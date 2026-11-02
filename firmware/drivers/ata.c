@@ -34,6 +34,7 @@
 #include "fs_defines.h"
 #include "storage.h"
 #include "logf.h"
+#include "backlight.h"
 
 #define SELECT_DEVICE1  0x10
 #define SELECT_LBA      0x40
@@ -126,6 +127,21 @@ static inline bool ata_sleep_timed_out(void)
     return sleep_timeout &&
            TIME_AFTER(current_tick, last_disk_activity + sleep_timeout);
 }
+
+#ifdef HAVE_ATA_POWER_OFF
+/* Flash, as an iFlash is, keeps its power while the screen is lit, as the disk is
+   wanted the most then. Asleep with it, it wakes with a reset, without the quarter
+   second for its voltage and all that comes after: in 35-50 ms on an iFlash, against
+   0.6-0.75 s from power off. A disk that spins goes off as it always has. */
+static inline bool ata_keeps_power(void)
+{
+#if !defined(BOOTLOADER) && defined(HAVE_BACKLIGHT)
+    return ata_disk_isssd() && is_backlight_on(true);
+#else
+    return false;
+#endif
+}
+#endif
 
 static inline bool ata_power_off_timed_out(void)
 {
@@ -1240,7 +1256,8 @@ int ata_event(long id, intptr_t data)
         /* won't see ATA_BOOT in here */
         if (ata_state != ATA_ON || !ata_sleep_timed_out()) {
 #ifdef HAVE_ATA_POWER_OFF
-            if (ata_state == ATA_SLEEPING && ata_power_off_timed_out()) {
+            if (ata_state == ATA_SLEEPING && ata_power_off_timed_out()
+                && !ata_keeps_power()) {
                 power_off_tick = 0;
                 mutex_lock(&ata_mutex);
                 logf("ata OFF %ld", current_tick);
@@ -1258,6 +1275,22 @@ int ata_event(long id, intptr_t data)
     else if (id == Q_STORAGE_SLEEP) {
         last_disk_activity = current_tick - sleep_timeout + HZ / 5;
     }
+#ifdef HAVE_ATA_POWER_OFF
+    else if (id == Q_STORAGE_WAKE_AHEAD) {
+        /* the screen has lit: flash comes on now, while it's looked at, rather
+           than with what is read next */
+        mutex_lock(&ata_mutex);
+        if ((ata_state == ATA_OFF || ata_state == ATA_SLEEPING) && ata_disk_isssd()) {
+            const long start = current_tick;
+            if (!ata_perform_wakeup(ata_state)) {
+                ata_state = ATA_ON;
+                spinup_time = current_tick - start;
+                keep_ata_active();
+            }
+        }
+        mutex_unlock(&ata_mutex);
+    }
+#endif
 #ifndef USB_NONE
     else if (id == SYS_USB_CONNECTED) {
         logf("deq USB %ld", current_tick);
