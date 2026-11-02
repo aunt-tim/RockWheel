@@ -915,6 +915,15 @@ static void reset_hidden_settings(void)
         &global_settings.surround_enabled,
         &global_settings.pbe,
         &global_settings.compressor_settings.threshold,
+#ifdef AUDIOHW_HAVE_BASS
+        &global_settings.bass,
+#endif
+#ifdef AUDIOHW_HAVE_TREBLE
+        &global_settings.treble,
+#endif
+        &global_settings.replaygain_settings.preamp,
+        &global_settings.replaygain_settings.noclip,
+        &global_settings.channel_config,
 #ifdef HAVE_TAGCACHE
         &global_settings.autoresume_enable,
 #endif
