@@ -205,6 +205,77 @@ static inline unsigned char *buffer_from_handle(int handle)
 /* Font cache structures */
 static void cache_create(struct font* pf);
 static NO_INLINE void glyph_cache_load(const char *font_path, struct font *pf);
+
+/* While a font's remembered glyphs load, as many as 250 of them from three places in its
+   file, each place comes in a stretch at a time: a seek and a read of each glyph's width,
+   place and bits took half a second at each boot. Only when the memory is there for the
+   taking. */
+#define FONT_WINDOW 16384
+enum { WINDOW_WIDTHS, WINDOW_OFFSETS, WINDOW_BITS, WINDOWS };
+static struct {
+    struct font *pf;
+    unsigned char *data;
+    off_t start[WINDOWS];
+    ssize_t len[WINDOWS];
+    int handle;
+} windows;
+
+static void font_windows_open(struct font *pf)
+{
+    size_t size = STORAGE_PAD(WINDOWS * FONT_WINDOW);
+    if (core_allocatable() < size)
+        return;
+    int handle = core_alloc(size);
+    if (handle <= 0)
+        return;
+    core_pin(handle);
+    unsigned char *data = core_get_data(handle);
+    STORAGE_ALIGN_BUFFER(data, size);
+    windows.handle = handle;
+    windows.data = data;
+    windows.pf = pf;
+    for (int i = 0; i < WINDOWS; i++)
+        windows.len[i] = 0;
+}
+
+static void font_windows_close(void)
+{
+    if (windows.pf)
+    {
+        core_unpin(windows.handle);
+        core_free(windows.handle);
+    }
+    windows.pf = NULL;
+}
+
+static ssize_t font_read_at(struct font *pf, int which, int fd, off_t pos,
+                            void *buf, size_t size)
+{
+    if (windows.pf == pf)
+    {
+        off_t in = pos - windows.start[which];
+        if (in < 0 || in + (off_t)size > windows.len[which])
+        {
+            const off_t start = pos & ~(off_t)511;
+            windows.len[which] = 0;
+            if (lseek(fd, start, SEEK_SET) == start)
+            {
+                const ssize_t got = read(fd, windows.data + which * FONT_WINDOW,
+                                         FONT_WINDOW);
+                windows.len[which] = got > 0 ? got : 0;
+            }
+            windows.start[which] = start;
+            in = pos - start;
+        }
+        if (in + (off_t)size <= windows.len[which])
+        {
+            memcpy(buf, windows.data + which * FONT_WINDOW + in, size);
+            return size;
+        }
+    }
+    lseek(fd, pos, SEEK_SET);
+    return read(fd, buf, size);
+}
 /* End Font cache structures */
 
 void font_init(void)
@@ -663,7 +734,9 @@ int font_load_ex( const char *path, size_t buf_size, int glyphs )
         pf->fd_width  = open( path, O_RDONLY|O_BINARY );
         pf->fd_offset = open( path, O_RDONLY|O_BINARY );
 
+        font_windows_open( pf );
         glyph_cache_load( path, pf );
+        font_windows_close();
 
         /* cached font: pf->fd stays open until the font is unloaded */
         close( pf->fd_width );
@@ -856,8 +929,7 @@ load_cache_entry(struct font_cache_entry* p, void* callback_data)
             fd = pf->fd_width;
         else
             fd = pf->fd;
-        lseek(fd, width_offset, SEEK_SET);
-        read(fd, &(p->width), 1);
+        font_read_at(pf, WINDOW_WIDTHS, fd, width_offset, &(p->width), 1);
     }
     else
     {
@@ -874,13 +946,12 @@ load_cache_entry(struct font_cache_entry* p, void* callback_data)
             fd = pf->fd_offset;
         else
             fd = pf->fd;
-        lseek(fd, offset, SEEK_SET);
         unsigned char tmp[2];
-        if (read (fd, tmp, 2) == 2)
+        if (font_read_at(pf, WINDOW_OFFSETS, fd, offset, tmp, 2) == 2)
         {
             bitmap_offset = tmp[0] | (tmp[1] << 8);
             if (pf->long_offset) {
-                if (read (fd, tmp, 2) == 2)
+                if (font_read_at(pf, WINDOW_OFFSETS, fd, offset + 2, tmp, 2) == 2)
                     bitmap_offset |= (tmp[0] << 16) | (tmp[1] << 24);
             }
         }
@@ -891,9 +962,8 @@ load_cache_entry(struct font_cache_entry* p, void* callback_data)
     }
 
     int32_t file_offset = FONT_HEADER_SIZE + bitmap_offset;
-    lseek(pf->fd, file_offset, SEEK_SET);
     int src_bytes = glyph_bytes(pf, p->width);
-    read(pf->fd, p->bitmap, src_bytes);
+    font_read_at(pf, WINDOW_BITS, pf->fd, file_offset, p->bitmap, src_bytes);
 
     lock_font_handle(pf->handle, false);
 }
