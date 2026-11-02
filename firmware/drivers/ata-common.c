@@ -237,6 +237,11 @@ int ata_write_sectors(IF_MD(int drive,)
 
     if (count) /* all complete physical sectors */
     {
+        /* a partial read or write of it later must not find the old contents */
+        if (sector_cache.inuse && sector_cache.sectornum >= start
+            && sector_cache.sectornum < start + count)
+            sector_cache.inuse = false;
+
         rc = ata_transfer_sectors(start, count, (void*)buf, true);
         if (rc)
         {
