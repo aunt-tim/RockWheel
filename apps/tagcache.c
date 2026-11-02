@@ -4822,7 +4822,12 @@ bool tagcache_update_runtime(int (*update)(const char *filename,
         do_timed_yield();
     }
     if (deleted > 0)
+    {
         sweep_unused_tags(masterfd, myhdr.tch.entry_count, fds);
+        /* what's made from the database goes by this, and is out of date: Cover Flow's
+           albums and the prepared lists of songs */
+        current_tcmh.commitid++;
+    }
 
     for (int tag = 0; tag < TAG_COUNT; tag++)
     {
