@@ -833,56 +833,63 @@ MAKE_MENU(equalizer_menu, ID2P(LANG_EQUALIZER), NULL, Icon_EQ,
 
 /* The equalizer of the iPod settings: Off, iTunes' presets, as on a stock iPod, and
    those for particular earphones, each set by selecting it. The gains are iTunes' own,
-   in hundredths of a dB, for bands at 32 Hz to 16 kHz like the default bands here. */
+   in hundredths of a dB, for bands at 32 Hz to 16 kHz like the default bands here.
+
+   Each preset's precut, in tenths of a dB, is its largest boost after the bands add
+   up, with the DSP's filters, which is more than any one band where they overlap. It's
+   in whole dB, up from that boost, as the volume makes up for it in steps of one: the
+   two are then the same, and a preset is as loud as no EQ while the amplifier has room
+   for it. Less than 0.1 dB over a whole dB is let pass. */
 static const struct
 {
     int lang_id;
+    int precut;
     short gain[EQ_NUM_BANDS];
 } eq_presets[] =
 {
-    { LANG_EQ_ACOUSTIC,
+    { LANG_EQ_ACOUSTIC, 70, /* 6.7 dB at 69 Hz */
       { 500, 490, 395, 105, 215, 175, 350, 410, 355, 215 } },
-    { LANG_EQ_BASS_BOOSTER,
+    { LANG_EQ_BASS_BOOSTER, 60, /* 6.1 at 69 Hz */
       { 550, 425, 350, 250, 125, 0, 0, 0, 0, 0 } },
-    { LANG_EQ_BASS_REDUCER,
+    { LANG_EQ_BASS_REDUCER, 0,
       { -550, -425, -350, -250, -125, 0, 0, 0, 0, 0 } },
-    { LANG_EQ_CLASSICAL,
+    { LANG_EQ_CLASSICAL, 60, /* 5.3 at 69 Hz */
       { 475, 375, 300, 250, -150, -150, 0, 225, 325, 375 } },
-    { LANG_EQ_DANCE,
+    { LANG_EQ_DANCE, 90, /* 8.6 at 68 Hz */
       { 357, 655, 499, 0, 192, 365, 515, 454, 359, 0 } },
-    { LANG_EQ_DEEP,
+    { LANG_EQ_DEEP, 50, /* 5.05 below 32 Hz */
       { 495, 355, 175, 100, 285, 250, 145, -215, -355, -460 } },
-    { LANG_EQ_ELECTRONIC,
+    { LANG_EQ_ELECTRONIC, 50, /* 4.8 at the top */
       { 425, 380, 120, 0, -215, 225, 85, 125, 395, 480 } },
-    { LANG_EQ_FLAT,
+    { LANG_EQ_FLAT, 0,
       { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    { LANG_EQ_HIP_HOP,
+    { LANG_EQ_HIP_HOP, 60, /* 5.3 at 65 Hz */
       { 500, 425, 150, 300, -100, -100, 150, -50, 200, 300 } },
-    { LANG_EQ_JAZZ,
+    { LANG_EQ_JAZZ, 40, /* 4.04 below 32 Hz */
       { 400, 300, 150, 225, -150, -150, 0, 150, 300, 375 } },
-    { LANG_EQ_LATIN,
+    { LANG_EQ_LATIN, 50, /* 4.5 at both ends */
       { 450, 300, 0, 0, -150, -150, -150, 0, 300, 450 } },
-    { LANG_EQ_LOUDNESS,
+    { LANG_EQ_LOUDNESS, 60, /* 6.03 below 32 Hz */
       { 600, 400, 0, 0, -200, 0, -100, -500, 500, 100 } },
-    { LANG_EQ_LOUNGE,
+    { LANG_EQ_LOUNGE, 60, /* 5.2 at 515 Hz */
       { -300, -150, -50, 150, 400, 250, 0, -150, 200, 100 } },
-    { LANG_EQ_PIANO,
+    { LANG_EQ_PIANO, 70, /* 6.5 at 3.9 kHz */
       { 300, 200, 0, 250, 300, 150, 350, 450, 300, 350 } },
-    { LANG_EQ_POP,
+    { LANG_EQ_POP, 60, /* 6.03 at 543 Hz */
       { -150, -100, 0, 200, 400, 400, 200, 0, -100, -150 } },
-    { LANG_EQ_RNB,
+    { LANG_EQ_RNB, 100, /* 9.1 at 69 Hz */
       { 262, 692, 565, 133, -219, -150, 232, 265, 300, 375 } },
-    { LANG_EQ_ROCK,
+    { LANG_EQ_ROCK, 60, /* 5.4 at 68 Hz */
       { 500, 400, 300, 150, -50, -100, 50, 250, 350, 450 } },
-    { LANG_EQ_SMALL_SPEAKERS,
+    { LANG_EQ_SMALL_SPEAKERS, 60, /* 6.07 at 69 Hz */
       { 550, 425, 350, 250, 125, 0, -125, -250, -350, -425 } },
-    { LANG_EQ_SPOKEN_WORD,
+    { LANG_EQ_SPOKEN_WORD, 80, /* 7.9 at 2 kHz */
       { -346, -47, 0, 69, 346, 461, 484, 428, 254, 0 } },
-    { LANG_EQ_TREBLE_BOOSTER,
+    { LANG_EQ_TREBLE_BOOSTER, 60, /* 5.5 at the top */
       { 0, 0, 0, 0, 0, 125, 250, 350, 425, 550 } },
-    { LANG_EQ_TREBLE_REDUCER,
+    { LANG_EQ_TREBLE_REDUCER, 0,
       { 0, 0, 0, 0, 0, -125, -250, -350, -425, -550 } },
-    { LANG_EQ_VOCAL_BOOSTER,
+    { LANG_EQ_VOCAL_BOOSTER, 60, /* 6.03 at 977 Hz */
       { -150, -300, -300, 150, 375, 375, 300, 150, 0, -150 } },
 };
 
@@ -890,8 +897,7 @@ static const struct
    for which model. From measurements of several of them,
    against the Harman target of their kind. Few bands, at their own frequencies and
    the rest off, as each one takes time from the UI. Bands are numbered as the
-   defaults, and q and gain are in tenths. The precut is the largest boost after the
-   bands add up, in tenths of a dB. */
+   defaults, and q and gain are in tenths. The precut is as for iTunes' presets. */
 #define EQ_PHONES_BANDS 6
 static const struct
 {
@@ -909,7 +915,7 @@ static const struct
       { { 2, { EQ_FILTER_PEAK, 170, 10, -25 } },
         { 7, { EQ_FILTER_PEAK, 5000, 10, 40 } } } },
     /* a little ahead of the target at 1.6-4 kHz, for voices */
-    { LANG_EQ_ZERO2_VOICE, 37,
+    { LANG_EQ_ZERO2_VOICE, 40, /* 3.7 dB */
       { { 2, { EQ_FILTER_PEAK, 170, 10, -30 } },
         { 6, { EQ_FILTER_PEAK, 3000, 12, 25 } },
         { 7, { EQ_FILTER_PEAK, 5500, 12, 30 } } } },
@@ -918,14 +924,14 @@ static const struct
        Their peak at 8-8.5 kHz is cut, right after a dip it stands 6 to 10 dB over:
        with it these made a lot of sibilance. So is some of the one at 12.5-13 kHz,
        5 dB over the target. */
-    { LANG_EQ_ZERO2_DETAIL, 38,
+    { LANG_EQ_ZERO2_DETAIL, 40, /* 3.8 */
       { { 2, { EQ_FILTER_PEAK, 170, 8, -35 } },
         { 5, { EQ_FILTER_PEAK, 4000, 8, 40 } },
         { 6, { EQ_FILTER_PEAK, 8300, 30, -50 } },
         { 7, { EQ_FILTER_PEAK, 10500, 40, 20 } },
         { 8, { EQ_FILTER_PEAK, 12800, 30, -30 } } } },
     /* the same way, less far, for treble that's too much with the first */
-    { LANG_EQ_ZERO2_SOFT, 25,
+    { LANG_EQ_ZERO2_SOFT, 30, /* 2.5 */
       { { 2, { EQ_FILTER_PEAK, 170, 10, -20 } },
         { 7, { EQ_FILTER_PEAK, 5000, 10, 25 } } } },
     /* Koss KPH30i, from 3 measurements against the over-ear target and then by ear: 10 dB
@@ -966,6 +972,12 @@ static struct eq_band_setting eq_preset_band(int preset, int band)
     return setting;
 }
 
+static int eq_preset_precut(int preset)
+{
+    return preset <= (int)ARRAYLEN(eq_phones) ? eq_phones[preset - 1].precut
+           : eq_presets[preset - 1 - ARRAYLEN(eq_phones)].precut;
+}
+
 static int eq_get_preset(void);
 
 static void eq_set_preset(int preset)
@@ -974,20 +986,21 @@ static void eq_set_preset(int preset)
     global_settings.eq_enabled = preset > 0;
     if (preset > 0)
     {
-        int precut = 0;
         for (int i = 0; i < EQ_NUM_BANDS; i++)
-        {
             global_settings.eq_band_settings[i] = eq_preset_band(preset, i);
-            precut = MAX(precut, global_settings.eq_band_settings[i].gain);
-        }
-        if (preset <= (int)ARRAYLEN(eq_phones))
-            precut = eq_phones[preset - 1].precut;
         /* down by the largest boost, so that loud music doesn't clip */
-        global_settings.eq_precut = precut;
+        global_settings.eq_precut = eq_preset_precut(preset);
     }
     eq_apply();
     if (changed)
         dsp_change_heard_now();
+}
+
+void eq_update_precut(void)
+{
+    const int preset = eq_get_preset();
+    if (preset > 0)
+        global_settings.eq_precut = eq_preset_precut(preset);
 }
 
 /* the preset the equalizer is set to, or Off (0) if none is */

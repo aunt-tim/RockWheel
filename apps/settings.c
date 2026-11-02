@@ -67,6 +67,7 @@
 #include "splash.h"
 #include "list.h"
 #include "settings_list.h"
+#include "menus/eq_menu.h"
 #include "filetypes.h"
 #include "option_select.h"
 #if CONFIG_TUNER
@@ -1122,6 +1123,7 @@ void settings_apply(bool read_disk)
                                    global_settings.crossfeed_hf_cutoff);
 
     /* Configure software equalizer, hardware eq is handled in audio_init() */
+    eq_update_precut();
     dsp_eq_enable(global_settings.eq_enabled);
     dsp_set_eq_precut(global_settings.eq_precut);
     sound_set_eq_makeup(global_settings.eq_enabled ? global_settings.eq_precut : 0);
