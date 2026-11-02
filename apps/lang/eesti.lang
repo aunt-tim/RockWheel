@@ -10759,3 +10759,45 @@
     *: ""
   </voice>
 </phrase>
+<phrase>
+  id: LANG_CANCEL_0
+  desc: CANCEL.
+  user: core
+  <source>
+    *: "Cancel"
+  </source>
+  <dest>
+    *: "Tühista"
+  </dest>
+  <voice>
+    *: "Tühista"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_LEFT
+  desc: Generic use of 'left'
+  user: core
+  <source>
+    *: "Left"
+  </source>
+  <dest>
+    *: "Vasak"
+  </dest>
+  <voice>
+    *: "Vasak"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_RIGHT
+  desc: Generic use of 'right'
+  user: core
+  <source>
+    *: "Right"
+  </source>
+  <dest>
+    *: "Parem"
+  </dest>
+  <voice>
+    *: "Parem"
+  </voice>
+</phrase>

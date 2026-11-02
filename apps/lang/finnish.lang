@@ -14819,3 +14819,17 @@
     *: ""
   </voice>
 </phrase>
+<phrase>
+  id: LANG_CANCEL_0
+  desc: CANCEL.
+  user: core
+  <source>
+    *: "Cancel"
+  </source>
+  <dest>
+    *: "Peruuta"
+  </dest>
+  <voice>
+    *: "Peruuta"
+  </voice>
+</phrase>

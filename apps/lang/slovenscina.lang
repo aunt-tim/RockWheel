@@ -14756,3 +14756,17 @@
     *: ""
   </voice>
 </phrase>
+<phrase>
+  id: LANG_CANCEL_0
+  desc: CANCEL.
+  user: core
+  <source>
+    *: "Cancel"
+  </source>
+  <dest>
+    *: "Prekliči"
+  </dest>
+  <voice>
+    *: "Prekliči"
+  </voice>
+</phrase>

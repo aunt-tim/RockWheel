@@ -13382,3 +13382,45 @@
     *: ""
   </voice>
 </phrase>
+<phrase>
+  id: LANG_CANCEL_0
+  desc: CANCEL.
+  user: core
+  <source>
+    *: "Cancel"
+  </source>
+  <dest>
+    *: "Atšaukti"
+  </dest>
+  <voice>
+    *: "Atšaukti"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_LEFT
+  desc: Generic use of 'left'
+  user: core
+  <source>
+    *: "Left"
+  </source>
+  <dest>
+    *: "Kairė"
+  </dest>
+  <voice>
+    *: "Kairė"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_RIGHT
+  desc: Generic use of 'right'
+  user: core
+  <source>
+    *: "Right"
+  </source>
+  <dest>
+    *: "Dešinė"
+  </dest>
+  <voice>
+    *: "Dešinė"
+  </voice>
+</phrase>

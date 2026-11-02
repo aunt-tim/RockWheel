@@ -9940,3 +9940,45 @@
     *: ""
   </voice>
 </phrase>
+<phrase>
+  id: LANG_CANCEL_0
+  desc: CANCEL.
+  user: core
+  <source>
+    *: "Cancel"
+  </source>
+  <dest>
+    *: "إلغاء"
+  </dest>
+  <voice>
+    *: "إلغاء"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_LEFT
+  desc: Generic use of 'left'
+  user: core
+  <source>
+    *: "Left"
+  </source>
+  <dest>
+    *: "يسار"
+  </dest>
+  <voice>
+    *: "يسار"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_RIGHT
+  desc: Generic use of 'right'
+  user: core
+  <source>
+    *: "Right"
+  </source>
+  <dest>
+    *: "يمين"
+  </dest>
+  <voice>
+    *: "يمين"
+  </voice>
+</phrase>

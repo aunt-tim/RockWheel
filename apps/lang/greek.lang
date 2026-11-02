@@ -17467,3 +17467,17 @@
     *: ""
   </voice>
 </phrase>
+<phrase>
+  id: LANG_CANCEL_0
+  desc: CANCEL.
+  user: core
+  <source>
+    *: "Cancel"
+  </source>
+  <dest>
+    *: "Ακύρωση"
+  </dest>
+  <voice>
+    *: "Ακύρωση"
+  </voice>
+</phrase>

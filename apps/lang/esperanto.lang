@@ -10429,3 +10429,45 @@
     *: ""
   </voice>
 </phrase>
+<phrase>
+  id: LANG_CANCEL_0
+  desc: CANCEL.
+  user: core
+  <source>
+    *: "Cancel"
+  </source>
+  <dest>
+    *: "Nuligi"
+  </dest>
+  <voice>
+    *: "Nuligi"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_LEFT
+  desc: Generic use of 'left'
+  user: core
+  <source>
+    *: "Left"
+  </source>
+  <dest>
+    *: "Maldekstre"
+  </dest>
+  <voice>
+    *: "Maldekstre"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_RIGHT
+  desc: Generic use of 'right'
+  user: core
+  <source>
+    *: "Right"
+  </source>
+  <dest>
+    *: "Dekstre"
+  </dest>
+  <voice>
+    *: "Dekstre"
+  </voice>
+</phrase>

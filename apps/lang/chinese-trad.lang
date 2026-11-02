@@ -13498,3 +13498,45 @@
     *: ""
   </voice>
 </phrase>
+<phrase>
+  id: LANG_CANCEL_0
+  desc: CANCEL.
+  user: core
+  <source>
+    *: "Cancel"
+  </source>
+  <dest>
+    *: "取消"
+  </dest>
+  <voice>
+    *: "取消"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_LEFT
+  desc: Generic use of 'left'
+  user: core
+  <source>
+    *: "Left"
+  </source>
+  <dest>
+    *: "左"
+  </dest>
+  <voice>
+    *: "左"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_RIGHT
+  desc: Generic use of 'right'
+  user: core
+  <source>
+    *: "Right"
+  </source>
+  <dest>
+    *: "右"
+  </dest>
+  <voice>
+    *: "右"
+  </voice>
+</phrase>
