@@ -2001,16 +2001,22 @@ static uint32_t find_sound_check(int fd, int count, uint64_t hash)
 void itunesdb_set_track_gain(struct mp3entry *id3)
 {
     struct flags_header hdr;
-    int fd = open(GAINS_FILE, O_RDONLY);
-    if (fd < 0)
-        return;
     uint32_t sound_check = 0;
-    if (read_gains_header(fd, &hdr))
-        sound_check = find_sound_check(fd, (int)hdr.count,
-                                       itunesdb_path_hash(id3->path));
-    close(fd);
+    int fd = open(GAINS_FILE, O_RDONLY);
+    if (fd >= 0)
+    {
+        if (read_gains_header(fd, &hdr))
+            sound_check = find_sound_check(fd, (int)hdr.count,
+                                           itunesdb_path_hash(id3->path));
+        close(fd);
+    }
     if (!sound_check)
+    {
+        /* the file's own ReplayGain tags then, which only lower it as well */
+        id3->track_gain = MIN(id3->track_gain, 1L << 24);
+        id3->album_gain = MIN(id3->album_gain, 1L << 24);
         return;
+    }
     /* the factor on the samples, s7.24. A track Finder would raise stays as it
        is: iTunesDB doesn't say where its peaks are, and raised they could clip */
     id3->track_gain = sound_check <= 1000 ? (1L << 24) :
