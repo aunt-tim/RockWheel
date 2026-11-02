@@ -201,6 +201,12 @@ static bool settings_crc_changed(void)
 /*
  * load settings from disk
  */
+static bool first_start = false;
+bool settings_first_start(void)
+{
+    return first_start;
+}
+
 void settings_load(void)
 {
     logf("\r\n%s()\r\n", __func__);
@@ -209,6 +215,7 @@ void settings_load(void)
     /* make temp files current make current files .old */
     rename_temp_file(RESUMEFILE_TEMP, RESUMEFILE, RESUMEFILE".old");
     rename_temp_file(CONFIGFILE_TEMP, CONFIGFILE, CONFIGFILE".old");
+    first_start = !file_exists(CONFIGFILE);
 
     settings_load_config(CONFIGFILE, false); /* load user_settings items */
     settings_load_config(RESUMEFILE, false); /* load system_status items */
@@ -924,6 +931,12 @@ static void reset_hidden_settings(void)
         &global_settings.replaygain_settings.preamp,
         &global_settings.replaygain_settings.noclip,
         &global_settings.channel_config,
+        &global_settings.playlist_viewer_indices,
+        &global_settings.playlist_viewer_track_display,
+#ifdef HAVE_PERCEPTUAL_VOLUME
+        &global_settings.volume_adjust_mode,
+        &global_settings.volume_adjust_norm_steps,
+#endif
 #ifdef HAVE_TAGCACHE
         &global_settings.autoresume_enable,
 #endif
@@ -1132,7 +1145,7 @@ void settings_apply(bool read_disk)
                                    global_settings.crossfeed_hf_cutoff);
 
     /* Configure software equalizer, hardware eq is handled in audio_init() */
-    eq_update_precut();
+    eq_update_preset();
     dsp_eq_enable(global_settings.eq_enabled);
     dsp_set_eq_precut(global_settings.eq_precut);
     sound_set_eq_makeup(global_settings.eq_enabled ? global_settings.eq_precut : 0);

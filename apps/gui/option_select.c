@@ -526,6 +526,9 @@ bool option_screen(const struct settings_list *setting,
     val_to_selection(setting, oldvalue, &nb_items, &selected, &function);
     gui_synclist_set_nb_items(&lists, nb_items);
     gui_synclist_select_item(&lists, selected);
+    /* a range whose changes are made while turning, like a slider */
+    const bool live = function && !cb_on_select_only
+        && (HASFLAG(setting, F_INT_SETTING) || HASFLAG(setting, F_T_SOUND));
 
     gui_synclist_draw(&lists);
     /* talk the item */
@@ -552,29 +555,26 @@ bool option_screen(const struct settings_list *setting,
         {
             if (action == ACTION_STD_MENU)
                 menu_request_root();
-            /* setting canceled, restore old value if changed */
-            if (*variable != oldvalue)
+            /* As on a stock iPod: a value seen at once while turning, as the
+               brightness is, stays, as a slider's does; a choice that wasn't made
+               with Select changes nothing. Neither says anything. */
+            if (*variable != oldvalue && !live)
             {
                 *variable = oldvalue;
                 if (var_type == F_T_BOOL && !use_temp_var)
                     *(bool*)setting->setting = (oldvalue==1);
-                splash(HZ/2, ID2P(LANG_CANCEL));
+            }
+            else if (*variable != oldvalue)
+            {
+                if (use_temp_var)
+                    *(int*)setting->setting = *variable;
+                settings_save();
             }
             done = true;
         }
-        else if (action == ACTION_STD_CONTEXT)
-        {
-            /* reset setting to default */
-            reset_setting(setting, variable);
-            if (var_type == F_T_BOOL && !use_temp_var)
-                *(bool*)setting->setting = (*variable==1);
-            val_to_selection(setting, *variable, &nb_items,
-                                &selected, &function);
-            gui_synclist_select_item(&lists, selected);
-            gui_synclist_draw(&lists);
-            gui_synclist_speak_item(&lists);
-        }
-        else if (action == ACTION_STD_OK)
+        /* held, it's a Select too, rather than a reset to the default that looked
+           like one */
+        else if (action == ACTION_STD_OK || action == ACTION_STD_CONTEXT)
         {
             /* setting accepted, store now if it used a temp var */
             if (use_temp_var)

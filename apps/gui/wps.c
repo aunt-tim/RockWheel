@@ -648,13 +648,20 @@ static void set_display_mode(enum wps_display_mode mode)
     skin_request_full_update(WPS);
 }
 
+/* in the stock iPod's order: the scrubber, the rating, the large cover, the lyrics */
 static void next_display_mode(void)
 {
-    int mode = get_wps_state()->display_mode;
+    static const enum wps_display_mode order[WPS_MODE_COUNT] = {
+        WPS_MODE_VOLUME, WPS_MODE_SCRUB, WPS_MODE_RATING, WPS_MODE_ALBUMART,
+        WPS_MODE_LYRICS,
+    };
+    int i = 0;
+    while (order[i] != get_wps_state()->display_mode)
+        i++;
     do
-        mode = (mode + 1) % WPS_MODE_COUNT;
-    while (!display_mode_available(mode));
-    set_display_mode(mode);
+        i = (i + 1) % WPS_MODE_COUNT;
+    while (!display_mode_available(order[i]));
+    set_display_mode(order[i]);
 }
 
 /* After a track change, before the wheel or a tick uses the views */

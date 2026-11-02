@@ -59,35 +59,27 @@ static int show_info(void);
 /***********************************/
 /*    MANAGE SETTINGS MENU        */
 
+/* As on a stock iPod: a list to reset or not, on Cancel at first, and then the
+   language to have, which a reset keeps until another is chosen */
 static int reset_settings(void)
 {
-    static const char *lines[]={ID2P(LANG_ARE_YOU_SURE), ID2P(LANG_RESET)};
-    static const char *yes_lines[]={
-        ID2P(LANG_SETTINGS),
-        ID2P(LANG_RESET_DONE_CLEAR)
+    static const struct opt_items items[] = {
+        { STR(LANG_RESET) }, { STR(LANG_CANCEL_0) },
     };
-    static const char *no_lines[]={
-        ID2P(LANG_SETTINGS),
-        ID2P(LANG_CANCEL)
-    };
-    static const struct text_message message={lines, 2};
-    static const struct text_message yes_message={yes_lines, 2};
-    static const struct text_message no_message={no_lines, 2};
+    int choice = 1;
+    if (set_option(str(LANG_RESET), &choice, RB_INT, items, ARRAYLEN(items), NULL))
+        return 1;
+    if (choice != 0)
+        return 0;
 
-    switch(gui_syncyesno_run(&message, &yes_message, &no_message))
-    {
-        case YESNO_YES:
-            settings_reset();
-            settings_save();
-            settings_apply(true);
-            settings_apply_skins();
-            break;
-        case YESNO_TMO:
-        case YESNO_NO:
-            break;
-        case YESNO_USB:
-            return 1;
-    }
+    char lang[sizeof(global_settings.lang_file)];
+    strmemccpy(lang, global_settings.lang_file, sizeof(lang));
+    settings_reset();
+    strmemccpy(global_settings.lang_file, lang, sizeof(global_settings.lang_file));
+    settings_save();
+    settings_apply(true);
+    settings_apply_skins();
+    language_screen();
     return 0;
 }
 static int write_settings_file(void* param)

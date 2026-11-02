@@ -544,7 +544,17 @@ void lyrics_draw(struct screen *display, struct viewport *vp)
     unsigned dim = fg;
 #ifdef HAVE_LCD_COLOR
     if (time_count > 0)
-        dim = dimmed(fg, vp->bg_pattern);
+    {
+        unsigned ground = vp->bg_pattern;
+#if defined(HAVE_ALBUMART) && (LCD_DEPTH >= 16)
+        /* on the colours of the cover, toward their ground, not the theme's:
+           toward white they were pale on a coloured one */
+        const struct cover_palette *palette = cover_palette_get();
+        if (palette && palette->whole_screen)
+            ground = palette->background;
+#endif
+        dim = dimmed(fg, ground);
+    }
 #endif
 #if defined(HAVE_ALBUMART) && (LCD_DEPTH >= 16)
     if (!cover_palette_clear(display, vp))

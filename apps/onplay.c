@@ -139,34 +139,18 @@ static bool clipboard_clip(struct clipboard *clip, const char *path,
 }
 
 /* CONTEXT_WPS playlist options */
-static bool shuffle_playlist(void)
-{
-    if (!yesno_pop_confirm(ID2P(LANG_SHUFFLE)))
-        return false;
-    playlist_sort(NULL, true);
-    playlist_randomise(NULL, 0, true);
-    playlist_set_modified(NULL, true);
-
-    return false;
-}
-
-static bool save_playlist(void)
-{
-    /* save_playlist_screen should load the newly saved playlist and resume */
-    save_playlist_screen(NULL);
-    return false;
-}
-
+/* Menu there comes back to this menu; a song chosen, or Play, goes to it */
 static int wps_view_cur_playlist(void)
 {
-    playlist_viewer_ex(NULL, NULL);
-
-    return 0;
-}
-
-static void playing_time(void)
-{
-    plugin_load(PLUGIN_APPS_DIR"/playing_time.rock", NULL);
+    switch (playlist_viewer_ex(NULL, NULL))
+    {
+        case PLAYLIST_VIEWER_CANCEL:
+            return 0;
+        case PLAYLIST_VIEWER_MAINMENU:
+            return GO_TO_ROOT;
+        default:
+            return GO_TO_WPS;
+    }
 }
 
 #ifdef HAVE_ALBUMART
@@ -176,21 +160,11 @@ static void view_album_art(void)
 }
 #endif
 
-MENUITEM_FUNCTION(wps_view_cur_playlist_item, 0, ID2P(LANG_VIEW_DYNAMIC_PLAYLIST),
-                  wps_view_cur_playlist, NULL, Icon_NOICON);
-MENUITEM_FUNCTION(search_playlist_item, 0, ID2P(LANG_SEARCH_IN_PLAYLIST),
-                  search_playlist, NULL, Icon_Playlist);
-MENUITEM_FUNCTION(playlist_save_item, 0, ID2P(LANG_SAVE_DYNAMIC_PLAYLIST),
-                  save_playlist, NULL, Icon_Playlist);
-MENUITEM_FUNCTION(reshuffle_item, 0, ID2P(LANG_SHUFFLE_PLAYLIST),
-                  shuffle_playlist, NULL, Icon_Playlist);
-MENUITEM_FUNCTION(playing_time_item, 0, ID2P(LANG_PLAYING_TIME),
-                  playing_time, NULL, Icon_Playlist);
-MAKE_ONPLAYMENU( wps_playlist_menu, ID2P(LANG_CURRENT_PLAYLIST),
-                 NULL, Icon_Playlist,
-                 &wps_view_cur_playlist_item, &playlist_save_item,
-                 &search_playlist_item, &reshuffle_item, &playing_time_item
-               );
+/* the songs to come, opened at once: saving them needed the keyboard, and the
+   rest of Rockbox's menu here was for its own playlists */
+MENUITEM_FUNCTION(wps_view_cur_playlist_item,
+                  MENU_EXITAFTERTHISMENU|MENU_FUNC_OPENS_SCREEN|MENU_FUNC_CHECK_RETVAL,
+                  ID2P(LANG_CURRENT_PLAYLIST), wps_view_cur_playlist, NULL, Icon_NOICON);
 
 /* argument for add_to_playlist (for use by menu callbacks) */
 #define PL_NONE    0x00
@@ -429,6 +403,12 @@ static int treeplaylist_callback(int action,
                  this_item->function_param->function_w_param == add_to_playlist)
         {
             struct add_to_pl_param *param = this_item->function_param->param;
+
+            /* what plays, now that these are in the first menu too */
+            if (sel_file_attr != FILE_ATTR_AUDIO &&
+                sel_file_attr != FILE_ATTR_M3U &&
+                (selected_file.attr & ATTR_DIRECTORY) == 0)
+                return ACTION_EXIT_MENUITEM;
 
             if ((param->flags & PL_QUEUE) == PL_QUEUE)
             {
@@ -1055,6 +1035,9 @@ static int clipboard_callback(int action,
     switch (action)
     {
         case ACTION_REQUEST_MENUITEM:
+            /* Rockbox's actions on files, its plugins and its info pages: there's
+               no file browser here, and the files are Finder's */
+            return ACTION_EXIT_MENUITEM;
 #ifdef HAVE_MULTIVOLUME
             /* no rename+delete for volumes */
             if ((selected_file.attr & ATTR_VOLUME) &&
@@ -1179,7 +1162,11 @@ static int go_to_playing(bool artist)
     int (*saved_add)(const char*, bool) = ctx_add_to_playlist;
 
     saved_file = selected_file;
+    /* the lists as they always are, beside the panel */
+    const bool wide = menu_wide();
+    menu_set_wide(false);
     const int screen = root_menu_go_to_playing(artist);
+    menu_set_wide(wide);
     if (screen == 0)
     {
         selected_file = saved_file;
@@ -1223,7 +1210,7 @@ static char *shuffle_item_name(int selected_item, void *data,
                                char *buffer, size_t buffer_len)
 {
     (void)selected_item; (void)data;
-    snprintf(buffer, buffer_len, "%s: %s", str(LANG_SHUFFLE_ITEM),
+    snprintf(buffer, buffer_len, "%s\t%s", str(LANG_SHUFFLE),
              str(global_settings.playlist_shuffle ? LANG_ON : LANG_OFF));
     return buffer;
 }
@@ -1261,7 +1248,7 @@ static char *repeat_item_name(int selected_item, void *data,
 #endif
         default:             value = LANG_OFF; break;
     }
-    snprintf(buffer, buffer_len, "%s: %s", str(LANG_REPEAT), str(value));
+    snprintf(buffer, buffer_len, "%s\t%s", str(LANG_REPEAT), str(value));
     return buffer;
 }
 
@@ -1283,7 +1270,7 @@ static char *sound_check_item_name(int selected_item, void *data,
                                    char *buffer, size_t buffer_len)
 {
     (void)selected_item; (void)data;
-    snprintf(buffer, buffer_len, "%s: %s", str(LANG_REPLAYGAIN_MODE),
+    snprintf(buffer, buffer_len, "%s\t%s", str(LANG_REPLAYGAIN_MODE),
              str(global_settings.replaygain_settings.type == REPLAYGAIN_OFF ?
                  LANG_OFF : LANG_ON));
     return buffer;
@@ -1302,9 +1289,8 @@ static char *volume_limit_item_name(int selected_item, void *data,
 {
     (void)selected_item; (void)data;
     char value[16];
-    format_sound_value(value, sizeof(value), SOUND_VOLUME, global_settings.volume_limit);
-    snprintf(buffer, buffer_len, "%s: %s", str(LANG_VOLUME_LIMIT_ROW),
-             skip_whitespace(value));
+    snprintf(buffer, buffer_len, "%s\t%s", str(LANG_VOLUME_LIMIT),
+             format_volume_step(value, sizeof(value), global_settings.volume_limit));
     return buffer;
 }
 
@@ -1323,7 +1309,7 @@ static char *dark_theme_item_name(int selected_item, void *data,
                                   char *buffer, size_t buffer_len)
 {
     (void)selected_item; (void)data;
-    snprintf(buffer, buffer_len, "%s: %s", str(LANG_DARK_THEME),
+    snprintf(buffer, buffer_len, "%s\t%s", str(LANG_DARK_THEME),
              str(global_settings.dark_theme ? LANG_ON : LANG_OFF));
     return buffer;
 }
@@ -1342,7 +1328,7 @@ static char *night_mode_item_name(int selected_item, void *data,
                                   char *buffer, size_t buffer_len)
 {
     (void)selected_item; (void)data;
-    snprintf(buffer, buffer_len, "%s: %s", str(LANG_NIGHT_MODE),
+    snprintf(buffer, buffer_len, "%s\t%s", str(LANG_NIGHT_MODE),
              str(global_settings.night_mode ? LANG_ON : LANG_OFF));
     return buffer;
 }
@@ -1376,7 +1362,7 @@ static char *cover_colours_item_name(int selected_item, void *data,
         value = LANG_COVER_SCREEN;
     else if (global_settings.cover_colours == COVER_COLOURS_FILL)
         value = LANG_COVER_FILL;
-    snprintf(buffer, buffer_len, "%s: %s", str(LANG_COLORS_MENU), str(value));
+    snprintf(buffer, buffer_len, "%s\t%s", str(LANG_COVER_COLOURS), str(value));
     return buffer;
 }
 
@@ -1396,7 +1382,7 @@ static char *brightness_item_name(int selected_item, void *data,
                                   char *buffer, size_t buffer_len)
 {
     (void)selected_item; (void)data;
-    snprintf(buffer, buffer_len, "%s: %d", str(LANG_BRIGHTNESS),
+    snprintf(buffer, buffer_len, "%s\t%d", str(LANG_BRIGHTNESS),
              global_settings.brightness);
     return buffer;
 }
@@ -1419,7 +1405,7 @@ MENUITEM_GROUP(wps_group_playback, ID2P(LANG_PLAYBACK));
 MENUITEM_GROUP(wps_group_settings, ID2P(LANG_SETTINGS));
 
 /* used when onplay() is called in the CONTEXT_WPS context */
-MAKE_ONPLAYMENU( wps_onplay_menu, ID2P(LANG_ONPLAY_MENU_TITLE),
+MAKE_ONPLAYMENU( wps_onplay_menu, ID2P(LANG_NOW_PLAYING),
            onplaymenu_callback, Icon_Audio,
            /* no rating, bookmarks or cuesheet: the rating is a view of the
               WPS, as on a stock iPod; the configurable items are off by
@@ -1429,7 +1415,7 @@ MAKE_ONPLAYMENU( wps_onplay_menu, ID2P(LANG_ONPLAY_MENU_TITLE),
 #endif
            &wps_group_playback,
            &wps_shuffle_item, &wps_repeat_item,
-           &wps_playlist_menu, &cat_playlist_menu,
+           &wps_view_cur_playlist_item, &cat_playlist_menu,
            &wps_group_settings,
            /* the two that change with the headphones first */
            &wps_volume_limit_item, &ipod_eq_menu, &wps_sound_check_item,
@@ -1450,31 +1436,23 @@ MAKE_ONPLAYMENU( wps_onplay_menu, ID2P(LANG_ONPLAY_MENU_TITLE),
            &context_item_4,
          );
 
-int sort_playlists_callback(int action,
-                            const struct menu_item_ex *this_item,
-                            struct gui_synclist *this_list)
-{
-    (void) this_list;
-    (void) this_item;
-
-    if (action == ACTION_REQUEST_MENUITEM &&
-        *tree_get_context()->dirfilter != SHOW_M3U)
-    {
-        return ACTION_EXIT_MENUITEM;
-    }
-    return action;
-}
-
-MENUITEM_SETTING(sort_playlists, &global_settings.sort_playlists, sort_playlists_callback);
 
 MENUITEM_FUNCTION(view_playlist_item, 0, ID2P(LANG_VIEW),
                   view_playlist,
                   onplaymenu_callback, Icon_Playlist);
 
-/* used when onplay() is not called in the CONTEXT_WPS context */
-MAKE_ONPLAYMENU( tree_onplay_menu, ID2P(LANG_ONPLAY_MENU_TITLE),
+/* used when onplay() is not called in the CONTEXT_WPS context: for a song, an album
+   or the like, or a playlist, what plays it, at once rather than in a submenu. Its
+   title is the name the list shows for it. */
+static char tree_menu_title[MAX_PATH];
+void onplay_set_title(const char *title)
+{
+    strmemccpy(tree_menu_title, title, sizeof(tree_menu_title));
+}
+
+MAKE_ONPLAYMENU( tree_onplay_menu, tree_menu_title,
            onplaymenu_callback, Icon_file_view_menu,
-           &view_playlist_item, &tree_playlist_menu, &cat_playlist_menu,
+           &i_first_pl_item, &i_last_pl_item, &cat_playlist_menu,
            &rename_file_item, &clipboard_cut_item, &clipboard_copy_item,
            &clipboard_paste_item, &delete_file_item, &delete_dir_item,
            &list_viewers_item, &create_dir_item, &properties_item, &track_info_item,
@@ -1485,7 +1463,7 @@ MAKE_ONPLAYMENU( tree_onplay_menu, ID2P(LANG_ONPLAY_MENU_TITLE),
 #if LCD_DEPTH > 1
            &set_backdrop_item,
 #endif
-           &add_to_faves_item, &set_as_dir_menu, &file_menu, &sort_playlists,
+           &add_to_faves_item, &set_as_dir_menu,
          );
 
 static int onplaymenu_callback(int action,
@@ -1888,11 +1866,23 @@ int onplay(char* file, int attr, int from_context, bool hotkey, int customaction
     }
 
     push_current_activity(ACTIVITY_CONTEXTMENU);
+    /* over Now Playing, the whole width, with room for the rows' values */
+    const bool was_wide = menu_wide();
     if (from_context == CONTEXT_WPS)
+    {
         menu = &wps_onplay_menu;
+        menu_set_wide(true);
+    }
     else
+    {
         menu = &tree_onplay_menu;
+        if (!tree_menu_title[0])
+            onplay_set_title(str(LANG_ONPLAY_MENU_TITLE));
+    }
     menu_selection = do_menu(menu, NULL, NULL, false);
+    tree_menu_title[0] = '\0';
+    if (from_context == CONTEXT_WPS)
+        menu_set_wide(was_wide);
     pop_current_activity();
 
     /* the latter: Play held, over a list; Now Playing stays where it is anyway */

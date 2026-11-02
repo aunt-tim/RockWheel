@@ -474,8 +474,8 @@ static int wpsscrn(void* param)
     }
     else if (!file_exists(PLAYLIST_CONTROL_FILE))
         splash(HZ*2, ID2P(LANG_NOTHING_TO_RESUME));
-    else if (yesno_pop(ID2P(LANG_REPLAY_FINISHED_PLAYLIST)) &&
-             playlist_resume() != -1)
+    /* a list played to its end starts again from the top, with no question */
+    else if (playlist_resume() != -1)
     {
         playlist_start(0, 0, 0);
         ret_val = gui_wps_show();
@@ -1292,6 +1292,9 @@ void root_menu(void)
     FOR_NB_SCREENS(i)
         viewportmanager_theme_undo(i, false);
 #endif
+    /* with no settings yet, the language is asked for first, as on a stock iPod */
+    if (settings_first_start())
+        language_screen();
     next_screen = root_menu_setup_screens();
 
     while (true)

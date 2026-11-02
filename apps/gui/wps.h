@@ -25,8 +25,9 @@
 struct mp3entry;
 
 /* Please don't add anything else to here... */
-/* What the centre button cycles through on the WPS, as on a stock iPod.
-   Skins see the current mode through %mw. */
+/* What the centre button cycles through on the WPS, in the stock iPod's order,
+   which next_display_mode() has. Skins see the current mode through %mw, by the
+   numbers here. */
 enum wps_display_mode
 {
     WPS_MODE_VOLUME = 0, /* normal view, the wheel sets the volume */

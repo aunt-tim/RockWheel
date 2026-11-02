@@ -616,6 +616,32 @@ static const char* formatter_volume_step(char *buffer, size_t buffer_size,
     return format_volume_step(buffer, buffer_size, val);
 }
 
+#ifdef HAVE_BACKLIGHT
+/* The stock iPod's Backlight Timer: Off, a few seconds, and Always last. Only "off"
+   is a word in the config, so that an "on" saved by Rockbox, which was always on,
+   is found as 0 */
+static const int backlight_timeouts[] = { -1, 2, 5, 10, 15, 20, 30, 0 };
+
+static const char* formatter_backlight(char *buffer, size_t buffer_size,
+                                       int val, const char *unit)
+{
+    (void) buffer_size;
+    (void) unit;
+    if (val == -1)
+        return str(LANG_OFF);
+    else if (val == 0)
+        return str(LANG_ALWAYS);
+    return buffer;
+}
+
+static int32_t getlang_backlight(int value, int unit)
+{
+    if (value == -1)
+        return LANG_OFF;
+    return getlang_time_unit_0_is_always(value, unit);
+}
+#endif
+
 static const char* formatter_time_unit_0_is_skip_track(char *buffer,
                                 size_t buffer_size, int val, const char *unit)
 {
@@ -1330,19 +1356,19 @@ const struct settings_list settings[] = {
                   .formatter = NULL, .get_talk_id = NULL }}}},
 #endif
 #ifdef HAVE_BACKLIGHT
-    TABLE_SETTING_LIST(F_TIME_SETTING | F_ALLOW_ARBITRARY_VALS,
+    TABLE_SETTING_LIST(F_TIME_SETTING,
                     backlight_timeout, LANG_BACKLIGHT,
                     DEFAULT_BACKLIGHT_TIMEOUT, "backlight timeout",
-                    off_on, UNIT_SEC, formatter_time_unit_0_is_always,
-                    getlang_time_unit_0_is_always, backlight_set_timeout,
-                    23, timeout_sec_common),
+                    "off", UNIT_SEC, formatter_backlight,
+                    getlang_backlight, backlight_set_timeout,
+                    ARRAYLEN(backlight_timeouts), backlight_timeouts),
 #if CONFIG_CHARGING
-    TABLE_SETTING_LIST(F_TIME_SETTING | F_ALLOW_ARBITRARY_VALS,
+    TABLE_SETTING_LIST(F_TIME_SETTING,
                     backlight_timeout_plugged, LANG_BACKLIGHT_ON_WHEN_CHARGING,
                     DEFAULT_BACKLIGHT_TIMEOUT, "backlight timeout plugged",
-                    off_on, UNIT_SEC, formatter_time_unit_0_is_always,
-                    getlang_time_unit_0_is_always, backlight_set_timeout_plugged,
-                    23, timeout_sec_common),
+                    "off", UNIT_SEC, formatter_backlight,
+                    getlang_backlight, backlight_set_timeout_plugged,
+                    ARRAYLEN(backlight_timeouts), backlight_timeouts),
 #endif
 #endif /* HAVE_BACKLIGHT */
 #ifdef HAVE_LCD_INVERT
@@ -1786,9 +1812,12 @@ const struct settings_list settings[] = {
     OFFON_SETTING(0,browse_current,LANG_FOLLOW,false,"follow playlist",NULL),
     OFFON_SETTING(0,playlist_viewer_icons,LANG_SHOW_ICONS,true,
                   "playlist viewer icons",NULL),
-    OFFON_SETTING(0,playlist_viewer_indices,LANG_SHOW_INDICES,true,
+    /* songs by title, as Finder's file names are four random letters, and with
+       no numbers, as the iPod's lists have none */
+    OFFON_SETTING(0,playlist_viewer_indices,LANG_SHOW_INDICES,false,
                   "playlist viewer indices",NULL),
-    CHOICE_SETTING(0, playlist_viewer_track_display, LANG_TRACK_DISPLAY, 0,
+    CHOICE_SETTING(0, playlist_viewer_track_display, LANG_TRACK_DISPLAY,
+                   PLAYLIST_VIEWER_ENTRY_SHOW_ID3_TITLE,
                    "playlist viewer track display",
                    "track name,full path,title and album from tags,title from tags",
                    NULL, 4, ID2P(LANG_DISPLAY_TRACK_NAME_ONLY),
@@ -2037,12 +2066,11 @@ const struct settings_list settings[] = {
 
 #ifdef HAVE_CROSSFADE
     /* crossfade */
+    /* Off or On, which fades from one song into the next as one ends; the other
+       ways also fade songs skipped to, which only cut what was asked for short */
     CHOICE_SETTING(F_SOUNDSETTING, crossfade, LANG_CROSSFADE_ENABLE, 0,
-                   "crossfade",
-                   "off,auto track change,man track skip,shuffle,shuffle or man track skip,always",
-                   NULL, 6, ID2P(LANG_OFF), ID2P(LANG_AUTOTRACKSKIP),
-                   ID2P(LANG_MANTRACKSKIP), ID2P(LANG_SHUFFLE),
-                   ID2P(LANG_SHUFFLE_TRACKSKIP), ID2P(LANG_ALWAYS)),
+                   "crossfade", "off,auto track change",
+                   audio_set_crossfade, 2, ID2P(LANG_OFF), ID2P(LANG_ON)),
     INT_SETTING(F_TIME_SETTING | F_SOUNDSETTING, crossfade_fade_in_delay,
                 LANG_CROSSFADE_FADE_IN_DELAY, 0,
                 "crossfade fade in delay", UNIT_SEC, 0, 7, 1, NULL, NULL, NULL),
@@ -2090,6 +2118,10 @@ const struct settings_list settings[] = {
     INT_SETTING_NOWRAP(F_EQSETTING, eq_precut, LANG_EQUALIZER_PRECUT, 0,
                        "eq precut", UNIT_DB, 0, 240, 1, eq_precut_format,
                        get_precut_talkid, dsp_set_eq_precut),
+    /* which of the iPod settings' presets the bands are: a firmware that retunes
+       it then sets them to its own */
+    INT_SETTING_NOWRAP(0, eq_preset, LANG_EQUALIZER, 0, "eq preset", UNIT_INT,
+                       0, 999, 1, NULL, NULL, NULL),
 
 
 #define EQ_BAND_OLD(id, string, type) \

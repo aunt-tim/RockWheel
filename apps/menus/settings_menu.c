@@ -955,7 +955,7 @@ static int lang_name_index(const char *file)
     return ARRAYLEN(lang_names);
 }
 
-static int language_list(void)
+int language_screen(void)
 {
     static char files[MAX_LANGS][MAX_FILENAME];
     struct opt_items items[MAX_LANGS];
@@ -1037,7 +1037,7 @@ static char *language_item_name(int selected_item, void *data,
     return buffer;
 }
 
-MENUITEM_FUNCTION_DYNTEXT(language_item, 0, language_list, language_item_name,
+MENUITEM_FUNCTION_DYNTEXT(language_item, 0, language_screen, language_item_name,
                           NULL, NULL, NULL, Icon_Language);
 
 MAKE_MENU(settings_menu_item, ID2P(LANG_GENERAL_SETTINGS), 0,

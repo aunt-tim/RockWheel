@@ -280,11 +280,7 @@ bool set_time_screen(const char* title, struct tm *tm, bool set_date)
                                   cursor[0][INDEX_Y], SEPARATOR);
             }
 
-            /* print help text */
-            if (nb_lines > 4)
-                screen->puts(0, 4, str(LANG_TIME_SET_BUTTON));
-            if (nb_lines > 5)
-                screen->puts(0, 5, str(LANG_TIME_REVERT));
+            /* no help text: Select sets and Menu goes back, as everywhere */
             screen->update_viewport();
             screen->set_viewport(last_vp);
         }

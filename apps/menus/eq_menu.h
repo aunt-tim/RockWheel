@@ -50,8 +50,8 @@ const char* eq_precut_format(char* buffer, size_t buffer_size, int value,
 /* callbacks for settings_list.c */
 void eq_enabled_option_callback(bool enabled);
 
-/* the precut of the preset the EQ is set to as this firmware has it, for one chosen
-   with an older firmware */
-void eq_update_precut(void);
+/* the bands and precut of the preset the EQ is set to as this firmware has them, for
+   one chosen with an older firmware */
+void eq_update_preset(void);
 
 #endif

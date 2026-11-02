@@ -124,9 +124,11 @@ static int get_menu_selection(int selected_item, const struct menu_item_ex *menu
 
 extern const struct menu_item_ex main_menu_;
 
+/* Settings and what opens from it, and any list as wide: the menu over Now Playing */
 static bool menu_shows_values(const struct menu_item_ex *menu)
 {
-    return menu == &main_menu_ || menu == &ipod_keyclick_menu || menu == &night_menu;
+    return menu_wide() || menu == &main_menu_ || menu == &ipod_keyclick_menu
+           || menu == &night_menu;
 }
 
 static bool setting_changes_in_place(const struct settings_list *setting)
@@ -843,7 +845,8 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
 
             menu_callback(ACTION_EXIT_MENUITEM, menu, &lists);
 
-            if (menu->flags&MENU_EXITAFTERTHISMENU)
+            /* one opened from another goes back to it, as anywhere else */
+            if ((menu->flags&MENU_EXITAFTERTHISMENU) && stack_top == 0)
                 done = true;
             else if ((menu->flags&MENU_TYPE_MASK) == MT_MENU)
                 exiting_menu = true;

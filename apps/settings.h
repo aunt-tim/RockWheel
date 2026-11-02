@@ -259,6 +259,8 @@ void reset_runtime(void);
 void update_runtime(void);
 void zero_runtime(void);
 void settings_load(void) INIT_ATTR;
+/* there were no settings to load: the iPod's first start, or after they were deleted */
+bool settings_first_start(void);
 bool settings_load_config(const char* file, bool apply);
 
 void status_save(bool force);
@@ -405,6 +407,7 @@ struct user_settings
     bool eq_enabled;            /* Enable equalizer */
     unsigned int eq_precut;     /* dB */
     struct eq_band_setting eq_band_settings[EQ_NUM_BANDS]; /* for each band */
+    int eq_preset;              /* the iPod settings' preset, by its id, or 0 */
 
     /* Misc. swcodec */
     int  beep;              /* system beep volume when changing tracks etc. */

@@ -2848,7 +2848,7 @@ static bool insert_all_playlist(struct tree_context *c,
             if (list_on_boot_screen)
                 library_update_songs_progress(i, n);
             else /* (voiced) */
-                splash_progress(i, n, "%s (%s)", str(LANG_WAIT), str(LANG_OFF_ABORT));
+                splash_progress(i, n, "%s", str(LANG_WAIT)); /* stopped as before, unsaid */
             if (action_userabort(TIMEOUT_NOBLOCK))
             {
                 exit_loop_now = true;
@@ -3036,7 +3036,7 @@ bool tagtree_entries_iterate(struct tagcache_search *tcs,
         for (i = 0; i < n; i++)
         {
             /* (voiced) */
-            splash_progress(i, n, "%s (%s)", str(LANG_WAIT), str(LANG_OFF_ABORT));
+            splash_progress(i, n, "%s", str(LANG_WAIT)); /* stopped as before, unsaid */
             if (TIME_AFTER(current_tick, last_tick + HZ/4))
             {
                 if (action_userabort(TIMEOUT_NOBLOCK))

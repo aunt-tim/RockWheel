@@ -544,14 +544,10 @@ static void format_line(struct playlist_entry* track, char* buf, int buf_sz)
     char name[MAX_PATH], *skipped, *prefix, *suffix, *formatted_name = NULL;
     bool show_id3 = global_settings.playlist_viewer_track_display
                     > PLAYLIST_VIEWER_ENTRY_SHOW_FULL_PATH;
+    /* no brackets around the song playing: the list opens on it */
     skipped = prefix = suffix = "";
     if (track->attr & PLAYLIST_ATTR_SKIPPED)
         skipped = "(ERR) ";
-    if (track->index == viewer.current_playing_track)
-    {
-        prefix = "[";
-        suffix = "]";
-    }
 
     if (show_id3 && !(track->attr & PLAYLIST_ATTR_RETRIEVE_ID3_ATTEMPTED))
         formatted_name = retrieve_formatted_id3(track);
@@ -699,16 +695,10 @@ static enum pv_context_result context_menu(int index)
     bool current_was_playing = (audio_status() & AUDIO_STATUS_PLAY) && /* or paused */
                                (current_track->index == viewer.current_playing_track);
 
+    /* what the list of songs to come is for: Rockbox's own playlist actions, its
+       settings and its info page aren't offered */
     MENUITEM_STRINGLIST(menu_items, ID2P(LANG_PLAYLIST), NULL,
-                        ID2P(LANG_PLAYING_NEXT), ID2P(LANG_ADD_TO_PL),
-                        ID2P(LANG_REMOVE), ID2P(LANG_MOVE),
-                        ID2P(LANG_MENU_SHOW_ID3_INFO),
-                        ID2P(LANG_SHUFFLE), ID2P(LANG_SAVE),
-                        ID2P(LANG_PLAYLISTVIEWER_SETTINGS)
-#ifdef HAVE_TAGCACHE
-                        ,ID2P(LANG_ONPLAY_PICTUREFLOW)
-#endif
-                        );
+                        ID2P(LANG_REMOVE), ID2P(LANG_MOVE));
     int sel = do_menu(&menu_items, NULL, NULL, false);
     if (sel == MENU_ATTACHED_USB)
         return PV_CONTEXT_USB;
@@ -721,48 +711,12 @@ static enum pv_context_result context_menu(int index)
         switch (sel)
         {
             case 0:
-                /* Playing Next... menu */
-                onplay_show_playlist_menu(current_track->name, FILE_ATTR_AUDIO, NULL);
-                return PV_CONTEXT_UNCHANGED;
-            case 1:
-                /* Add to Playlist... menu */
-                onplay_show_playlist_cat_menu(current_track->name, FILE_ATTR_AUDIO, NULL);
-                return PV_CONTEXT_UNCHANGED;
-            case 2:
                 return delete_track(current_track->index, index, current_was_playing);
-            case 3:
+            case 1:
                 /* move track */
                 viewer.moving_track = index;
                 viewer.moving_playlist_index = current_track->index;
                 return PV_CONTEXT_UNCHANGED;
-            case 4:
-                return show_track_info(current_track);
-            case 5:
-                /* shuffle */
-                if (!yesno_pop_confirm(ID2P(LANG_SHUFFLE)))
-                    return PV_CONTEXT_UNCHANGED;
-                playlist_sort(viewer.playlist, !viewer.playlist);
-                playlist_randomise(viewer.playlist, current_tick, !viewer.playlist);
-                viewer.selected_track = 0;
-                return PV_CONTEXT_MODIFIED;
-            case 6:
-                save_playlist_screen(viewer.playlist);
-                /* playlist indices of current playlist may have changed */
-                return viewer.playlist ? PV_CONTEXT_UNCHANGED : PV_CONTEXT_PL_UPDATE;
-            case 7:
-            {
-                /* playlist viewer settings */
-                sel = global_settings.playlist_viewer_track_display;
-                if (MENU_ATTACHED_USB == do_menu(&viewer_settings_menu, NULL, NULL, false))
-                    return PV_CONTEXT_USB;
-                else
-                    return (sel == global_settings.playlist_viewer_track_display) ?
-                           PV_CONTEXT_UNCHANGED : PV_CONTEXT_PL_UPDATE;
-            }
-#ifdef HAVE_TAGCACHE
-            case 8:
-                return open_pictureflow(current_track);
-#endif
         }
     }
     return PV_CONTEXT_UNCHANGED;

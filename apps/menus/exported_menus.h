@@ -86,5 +86,6 @@ int browse_folder(void *param); /* in theme_menu.c as it is mostly used there */
 
 #endif /* ! PLUGIN */
 void volume_limit_screen(void); /* sound_menu.c */
+int language_screen(void); /* settings_menu.c: the list of languages */
 
 #endif /*_EXPORTED_MENUS_H */

@@ -88,6 +88,8 @@ const struct hotkey_assignment *get_hotkey(int action);
 int hotkey_run_menu(intptr_t flag, bool execute, int current_action);
 
 int onplay(char* file, int attr, int from_context, bool hotkey, int customaction);
+/* the title of the next menu of a song or the like that onplay() opens: its name */
+void onplay_set_title(const char *title);
 int get_onplay_context(void);
 
 /* needed for the playlist viewer.. eventually clean this up */

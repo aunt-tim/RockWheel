@@ -969,6 +969,10 @@ static int dirbrowse(void)
 #ifdef HAVE_TAGCACHE
                     if (id3db)
                     {
+                        char title[MAX_PATH];
+                        if (tagtree_get_entry_name(&tc, tc.selected_item, title,
+                                                   sizeof(title)))
+                            onplay_set_title(title);
                         if (tagtree_get_attr(&tc) == FILE_ATTR_AUDIO)
                         {
                             attr = FILE_ATTR_AUDIO;
@@ -1012,6 +1016,12 @@ static int dirbrowse(void)
                         attr = entry->attr;
 
                         ft_assemble_path(buf, sizeof(buf), currdir, entry->name);
+                        /* a playlist by its name, as the list shows it */
+                        char title[MAX_PATH];
+                        strmemccpy(title, entry->name, sizeof(title));
+                        if ((attr & FILE_ATTR_MASK) == FILE_ATTR_M3U)
+                            strrsplt(title, '.');
+                        onplay_set_title(title);
 
                     }
                     onplay_result = onplay(buf, attr, curr_context, hotkey, customaction);

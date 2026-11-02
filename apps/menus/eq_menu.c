@@ -897,11 +897,13 @@ static const struct
    for which model. From measurements of several of them,
    against the Harman target of their kind. Few bands, at their own frequencies and
    the rest off, as each one takes time from the UI. Bands are numbered as the
-   defaults, and q and gain are in tenths. The precut is as for iTunes' presets. */
+   defaults, and q and gain are in tenths. The precut is as for iTunes' presets. The
+   id is what the settings keep, so a new one takes the next free number. */
 #define EQ_PHONES_BANDS 6
 static const struct
 {
     int lang_id;
+    int id;
     int precut;
     struct
     {
@@ -911,11 +913,11 @@ static const struct
 } eq_phones[] =
 {
     /* 7Hz Zero 2: 2 dB too much at 100-250 Hz, and 2 to 5 dB too little at 2.5-6.3 kHz */
-    { LANG_EQ_ZERO2, 40,
+    { LANG_EQ_ZERO2, 1, 40,
       { { 2, { EQ_FILTER_PEAK, 170, 10, -25 } },
         { 7, { EQ_FILTER_PEAK, 5000, 10, 40 } } } },
     /* a little ahead of the target at 1.6-4 kHz, for voices */
-    { LANG_EQ_ZERO2_VOICE, 40, /* 3.7 dB */
+    { LANG_EQ_ZERO2_VOICE, 2, 40, /* 3.7 dB */
       { { 2, { EQ_FILTER_PEAK, 170, 10, -30 } },
         { 6, { EQ_FILTER_PEAK, 3000, 12, 25 } },
         { 7, { EQ_FILTER_PEAK, 5500, 12, 30 } } } },
@@ -924,14 +926,14 @@ static const struct
        Their peak at 8-8.5 kHz is cut, right after a dip it stands 6 to 10 dB over:
        with it these made a lot of sibilance. So is some of the one at 12.5-13 kHz,
        5 dB over the target. */
-    { LANG_EQ_ZERO2_DETAIL, 40, /* 3.8 */
+    { LANG_EQ_ZERO2_DETAIL, 3, 40, /* 3.8 */
       { { 2, { EQ_FILTER_PEAK, 170, 8, -35 } },
         { 5, { EQ_FILTER_PEAK, 4000, 8, 40 } },
         { 6, { EQ_FILTER_PEAK, 8300, 30, -50 } },
         { 7, { EQ_FILTER_PEAK, 10500, 40, 20 } },
         { 8, { EQ_FILTER_PEAK, 12800, 30, -30 } } } },
     /* the same way, less far, for treble that's too much with the first */
-    { LANG_EQ_ZERO2_SOFT, 30, /* 2.5 */
+    { LANG_EQ_ZERO2_SOFT, 4, 30, /* 2.5 */
       { { 2, { EQ_FILTER_PEAK, 170, 10, -20 } },
         { 7, { EQ_FILTER_PEAK, 5000, 10, 25 } } } },
     /* Koss KPH30i, from 3 measurements against the over-ear target and then by ear: 10 dB
@@ -939,7 +941,7 @@ static const struct
        much at 125-250 Hz, of which half is cut, as all of it sounded dry. A notch of 8 to
        12 dB at 4-4.5 kHz comes right before a peak at 5 kHz that a single wide band would
        raise, then dips at 6.3 and 10 kHz. Voices wanted a little more around 3 kHz. */
-    { LANG_EQ_KPH30I, 80,
+    { LANG_EQ_KPH30I, 5, 80,
       { { 0, { EQ_FILTER_LOW_SHELF, 70, 10, 75 } },
         { 2, { EQ_FILTER_PEAK, 190, 11, -15 } },
         { 4, { EQ_FILTER_PEAK, 3000, 12, 15 } },
@@ -978,44 +980,21 @@ static int eq_preset_precut(int preset)
            : eq_presets[preset - 1 - ARRAYLEN(eq_phones)].precut;
 }
 
-static int eq_get_preset(void);
-
-static void eq_set_preset(int preset)
+/* the id the settings keep for a preset: the earphones' own, and 101 on for
+   iTunes', which never change */
+#define EQ_ITUNES_ID 101
+static int eq_preset_id(int preset)
 {
-    /* on and set to none is a setting of its own, which Off changes too */
-    const bool changed = preset != eq_get_preset()
-                         || (preset == 0 && global_settings.eq_enabled);
-    global_settings.eq_enabled = preset > 0;
-    if (preset > 0)
-    {
-        for (int i = 0; i < EQ_NUM_BANDS; i++)
-            global_settings.eq_band_settings[i] = eq_preset_band(preset, i);
-        /* down by the largest boost, so that loud music doesn't clip */
-        global_settings.eq_precut = eq_preset_precut(preset);
-    }
-    if (changed)
-    {
-        dsp_change_heard_now(eq_apply);
-        settings_save();
-    }
-    else
-        eq_apply();
+    return preset <= (int)ARRAYLEN(eq_phones) ? eq_phones[preset - 1].id
+           : EQ_ITUNES_ID + preset - 1 - (int)ARRAYLEN(eq_phones);
 }
 
-void eq_update_precut(void)
-{
-    const int preset = eq_get_preset();
-    if (preset > 0)
-        global_settings.eq_precut = eq_preset_precut(preset);
-}
+#define EQ_PRESETS ((int)(ARRAYLEN(eq_phones) + ARRAYLEN(eq_presets)))
 
-/* the preset the equalizer is set to, or Off (0) if none is */
-static int eq_get_preset(void)
+/* the preset whose bands the EQ's are, or 0 */
+static int eq_preset_of_bands(void)
 {
-    if (!global_settings.eq_enabled)
-        return 0;
-    const int presets = ARRAYLEN(eq_phones) + ARRAYLEN(eq_presets);
-    for (int preset = 1; preset <= presets; preset++)
+    for (int preset = 1; preset <= EQ_PRESETS; preset++)
     {
         int i = 0;
         for (; i < EQ_NUM_BANDS; i++)
@@ -1033,6 +1012,54 @@ static int eq_get_preset(void)
             return preset;
     }
     return 0;
+}
+
+/* the preset the equalizer is set to, or Off (0) if none is: the one kept, or for
+   settings from before that, the one with its bands */
+static int eq_get_preset(void)
+{
+    if (!global_settings.eq_enabled)
+        return 0;
+    for (int preset = 1; preset <= EQ_PRESETS; preset++)
+    {
+        if (eq_preset_id(preset) == global_settings.eq_preset)
+            return preset;
+    }
+    return eq_preset_of_bands();
+}
+
+static void eq_set_preset(int preset)
+{
+    /* on and set to none is a setting of its own, which Off changes too */
+    const bool changed = preset != eq_get_preset()
+                         || (preset == 0 && global_settings.eq_enabled);
+    global_settings.eq_enabled = preset > 0;
+    global_settings.eq_preset = preset > 0 ? eq_preset_id(preset) : 0;
+    if (preset > 0)
+    {
+        for (int i = 0; i < EQ_NUM_BANDS; i++)
+            global_settings.eq_band_settings[i] = eq_preset_band(preset, i);
+        /* down by the largest boost, so that loud music doesn't clip */
+        global_settings.eq_precut = eq_preset_precut(preset);
+    }
+    if (changed)
+    {
+        dsp_change_heard_now(eq_apply);
+        settings_save();
+    }
+    else
+        eq_apply();
+}
+
+void eq_update_preset(void)
+{
+    const int preset = eq_get_preset();
+    if (preset <= 0)
+        return;
+    global_settings.eq_preset = eq_preset_id(preset);
+    for (int i = 0; i < EQ_NUM_BANDS; i++)
+        global_settings.eq_band_settings[i] = eq_preset_band(preset, i);
+    global_settings.eq_precut = eq_preset_precut(preset);
 }
 
 /* The first list: Off, iTunes' presets as one row, and a row for each model of
@@ -1200,23 +1227,7 @@ static char *eq_setting_name(void)
                eq_phones[preset - 1].lang_id : eq_presets[preset - phones - 1].lang_id);
 }
 
-/* in the menu over Now Playing, among rows that say "name: value" */
-static char *eq_menu_name(int selected_item, void *data,
-                          char *buffer, size_t buffer_len)
-{
-    (void)selected_item; (void)data;
-    char *name = eq_setting_name();
-    if (!name)
-        return str(LANG_EQUALIZER);
-    snprintf(buffer, buffer_len, "%s: %s", str(LANG_EQUALIZER), name);
-    return buffer;
-}
-
-MENUITEM_FUNCTION_DYNTEXT(ipod_eq_menu, MENU_EXITAFTERTHISMENU|MENU_FUNC_OPENS_SCREEN,
-                          eq_choose_preset, eq_menu_name,
-                          NULL, NULL, lowlatency_callback, Icon_EQ);
-
-/* in the settings list */
+/* in the settings list, and in the menu over Now Playing */
 static char *eq_row_name(int selected_item, void *data,
                          char *buffer, size_t buffer_len)
 {
@@ -1227,6 +1238,10 @@ static char *eq_row_name(int selected_item, void *data,
     snprintf(buffer, buffer_len, "%s\t%s", str(LANG_EQUALIZER), name);
     return buffer;
 }
+
+MENUITEM_FUNCTION_DYNTEXT(ipod_eq_menu, MENU_EXITAFTERTHISMENU|MENU_FUNC_OPENS_SCREEN,
+                          eq_choose_preset, eq_row_name,
+                          NULL, NULL, lowlatency_callback, Icon_EQ);
 
 MENUITEM_FUNCTION_DYNTEXT(ipod_eq_row, 0, eq_choose_preset, eq_row_name,
                           NULL, NULL, lowlatency_callback, Icon_EQ);
