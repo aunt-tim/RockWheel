@@ -25,7 +25,10 @@
                       TREBLE_CUTOFF_CAP | LINEOUT_CAP | LIN_GAIN_CAP | \
                       MIC_GAIN_CAP)
 
-AUDIOHW_SETTING(VOLUME,      "dB", 0,  1, -90,   6, -25)
+/* The volume goes up to 0 dB. The amplifier has 6 dB more, which only make up for
+   the EQ's precut, as over 0 dB loud music would clip in it */
+AUDIOHW_SETTING(VOLUME,      "dB", 0,  1, -90,   0, -25)
+#define AUDIOHW_VOLUME_HEADROOM 6 /* dB */
 AUDIOHW_SETTING(BASS,        "dB", 0,  1, -12,  12,   0)
 AUDIOHW_SETTING(TREBLE,      "dB", 0,  1, -12,  12,   0)
 AUDIOHW_SETTING(BASS_CUTOFF,   "", 0,  1,   1,   4,   1)

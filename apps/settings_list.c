@@ -1080,7 +1080,8 @@ static void start_in_callback(int var)
 /* volume limiter */
 static void volume_limit_load_from_cfg(void* var, char*value)
 {
-    *(int*)var = atoi(value);
+    /* one saved when the volume went higher is the top */
+    *(int*)var = MIN(atoi(value), sound_max(SOUND_VOLUME));
 }
 static char* volume_limit_write_to_cfg(void* setting, char*buf, int buf_len)
 {
@@ -1585,7 +1586,7 @@ const struct settings_list settings[] = {
 #endif
     OFFON_SETTING(0, night_limit, LANG_NIGHT_LIMIT, true, "night limit", night_action_changed),
     INT_SETTING(F_NO_WRAP, night_volume, LANG_NIGHT_VOLUME, -12, "night volume", UNIT_DB,
-                -60, 6, 1, NULL, NULL, NULL),
+                -60, 0, 1, NULL, NULL, NULL),
     OFFON_SETTING(0, night_schedule, LANG_NIGHT_ON_SCHEDULE, false, "night schedule",
                   night_schedule_changed),
     INT_SETTING(0, night_start, LANG_NIGHT_STARTS, 22 * 60, "night start", UNIT_INT,

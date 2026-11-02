@@ -235,6 +235,16 @@ static struct
 #define TONE_PRESCALER
 #endif
 
+/* The top of the hardware's volume, which can be over the setting's */
+static int hw_volume_max_cb(void)
+{
+    int max = sound_value_to_cb(SOUND_VOLUME, sound_max(SOUND_VOLUME));
+#ifdef AUDIOHW_VOLUME_HEADROOM
+    max += AUDIOHW_VOLUME_HEADROOM * 10;
+#endif
+    return max;
+}
+
 static void set_prescaled_volume(void)
 {
 #if defined(TONE_PRESCALER) || !defined(AUDIOHW_HAVE_MONO_VOLUME)
@@ -262,7 +272,7 @@ static void set_prescaled_volume(void)
     /* Gain up the analog volume to compensate the prescale gain reduction,
      * but if this would push the volume over the top, reduce prescaling
      * instead (might cause clipping). */
-    const int maxvol = sound_value_to_cb(SOUND_VOLUME, sound_max(SOUND_VOLUME));
+    const int maxvol = hw_volume_max_cb();
 
     if (volume + prescale > maxvol)
         prescale = maxvol - volume;
@@ -285,8 +295,7 @@ static void set_prescaled_volume(void)
     /* The software EQ's precut keeps its boosts from clipping: the analog volume makes
        up for it as far as it goes, so that a preset is no quieter than no EQ */
     if (volume > minvol)
-        volume = MIN(volume + sound_prescaler.eq_makeup,
-                     MAX(volume, sound_value_to_cb(SOUND_VOLUME, sound_max(SOUND_VOLUME))));
+        volume = MIN(volume + sound_prescaler.eq_makeup, MAX(volume, hw_volume_max_cb()));
 
     int l = volume, r = volume;
 
