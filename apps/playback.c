@@ -1594,6 +1594,22 @@ static void buf_read_cuesheet(int handle_id)
     bufread(handle_id, sizeof (struct cuesheet), cue);
 }
 
+#if defined(ITUNESDB_HAVE_ART) && defined(AUDIO_FAST_SKIP_PREVIEW)
+#define HAVE_SKIP_ART
+/* The cover in the iPod's database of the track a skip is on its way to when that
+   track isn't in the buffer: Now Playing shows what the database tells of it at once,
+   and its cover with it */
+static struct itunesdb_art skip_art;
+static int skip_art_offset = 0; /* the skip it's of, 0 for none */
+
+static void note_skip_art(int offset, const struct mp3entry *id3, const char *path)
+{
+    if (id3 == id3_get(PLAYING_PEEK_ID3))
+        skip_art_offset = global_settings.album_art != AA_OFF
+                          && itunesdb_find_art(path, &skip_art) ? offset : 0;
+}
+#endif
+
 /* Backend to peek/current/next track metadata interface functions -
    fill in the mp3entry with as much information as we may obtain about
    the track at the specified offset from the user current track -
@@ -1618,6 +1634,9 @@ static bool audio_get_track_metadata(int offset, struct mp3entry *id3)
             if (ub_id3->path[0] != '\0')
             {
                 copy_mp3entry(id3, ub_id3);
+#ifdef HAVE_SKIP_ART
+                note_skip_art(offset, id3, id3->path);
+#endif
                 return true;
             }
         }
@@ -1634,6 +1653,9 @@ static bool audio_get_track_metadata(int offset, struct mp3entry *id3)
     char path[MAX_PATH+1];
     if (playlist_peek(offset, path, sizeof (path)))
     {
+#ifdef HAVE_SKIP_ART
+        note_skip_art(offset, id3, path);
+#endif
 #if defined(HAVE_TC_RAMCACHE) && defined(HAVE_DIRCACHE)
         /* Try to get it from the database */
         if (!tagcache_fill_tags(id3, path))
@@ -3482,12 +3504,16 @@ static void audio_on_skip(void)
 
     struct track_info info;
     const bool advanced = track_list_advance_current(track_list_delta, &info);
-    skip_under_way = 0;
+    /* The list has moved. If it hasn't, it moves as it's filled again from the track
+       skipped to, and the skip counts until then: before, the old track is still in it */
+    if (advanced)
+        skip_under_way = 0;
     if (!advanced || info.audio_hid < 0)
     {
         /* We don't know the next track thus we know we don't have it */
         trackstat = audio_reset_and_rebuffer(TRACK_LIST_CLEAR_ALL, -1);
     }
+    skip_under_way = 0;
 
     audio_begin_track_change(TRACK_CHANGE_MANUAL, trackstat);
 }
@@ -4213,6 +4239,9 @@ void audio_skip(int offset)
         /* Accumulate net manual skip count since the audio thread last
            processed one */
         skip_offset = accum;
+#ifdef HAVE_SKIP_ART
+        skip_art_offset = 0; /* until the preview below finds it */
+#endif
         pcmbuf_skip_requested();
 
         system_sound_play(SOUND_TRACK_SKIP);
@@ -4337,6 +4366,24 @@ uint32_t playback_current_cover_colour(void)
     return track_list_cover_current(&user_cur) ? user_cur.cover_colour
                                                : COVER_COLOUR_UNKNOWN;
 }
+
+#ifdef HAVE_SKIP_ART
+/* While a skip is on its way to a track that isn't in the buffer, and the handles above
+   are still those of the track it leaves: the cover of the one it's going to from the
+   iPod's database */
+bool playback_skip_art(struct itunesdb_art *art)
+{
+    id3_mutex_lock();
+    const int offset = skip_offset + skip_under_way;
+    const bool found = skip_art_offset != 0 && skip_art_offset == offset
+                       && play_status != PLAY_STOPPED
+                       && !track_list_user_current(offset, NULL);
+    if (found)
+        *art = skip_art;
+    id3_mutex_unlock();
+    return found;
+}
+#endif
 
 /* Find an album art slot that doesn't match the dimensions of another that
    is already claimed - increment the use count if it is */

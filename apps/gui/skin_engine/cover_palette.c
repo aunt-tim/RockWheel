@@ -924,7 +924,7 @@ bool cover_palette_update(int art_handle, uint32_t colour)
         return set_inactive();
     }
 
-    if (art_handle < 0)
+    if (art_handle < 0 && art_handle != COVER_ART_BY_COLOUR)
     {
         if (!active)
             return false;
@@ -943,20 +943,20 @@ bool cover_palette_update(int art_handle, uint32_t colour)
     }
 
     cover_gone = false;
-    if (art_handle == palette_handle)
+    if (art_handle == palette_handle && art_handle != COVER_ART_BY_COLOUR)
         return false;
 
     /* a cover not from an album made ready at an import, as one in the file */
     if (colour == COVER_COLOUR_UNKNOWN)
     {
         struct bitmap *bmp;
-        if (bufgetdata(art_handle, 0, (void *)&bmp) <= 0)
+        if (art_handle < 0 || bufgetdata(art_handle, 0, (void *)&bmp) <= 0)
             return false;
         colour = cover_palette_colour((const fb_data *)bmp->data, bmp->width, bmp->height);
     }
 
     /* the rest of an album */
-    if (active && palette_handle >= 0 && colour == palette_colour)
+    if (active && palette_handle != -1 && colour == palette_colour)
     {
         palette_handle = art_handle;
         return false;

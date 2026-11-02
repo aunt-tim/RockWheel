@@ -760,7 +760,11 @@ void wps_draw_image(struct gui_wps *gwps, struct gui_img *img,
 static struct {
     fb_data pixels[ART_KEPT_SIZE * ART_KEPT_SIZE];
     short width, height;
-    int handle;
+    int handle;     /* the one it's a copy of, or -1 for a cover from the database: */
+#ifdef ITUNESDB_HAVE_ART
+    uint32_t offset;
+    char path[sizeof(((struct itunesdb_art *)0)->path)];
+#endif
     bool had_cover; /* it had one when last looked at */
     bool keeping;   /* it has none now, and the copy stays until then */
     long until;
@@ -834,6 +838,38 @@ static void draw_kept_album_art(struct gui_wps *gwps, struct skin_albumart *aa,
                     kept_art[index].height);
 }
 
+#if defined(ITUNESDB_HAVE_ART) && defined(AUDIO_FAST_SKIP_PREVIEW)
+/* While a skip is on its way to a track that isn't in the buffer, Now Playing already
+   shows what the database tells of it, and the cover from there goes into the copy
+   kept until the buffer has the track's own, which is the same */
+static bool skip_art_ready(const struct wps_data *data, int index)
+{
+    struct skin_albumart *aa = SKINOFFSETTOPTR(get_skin_buffer((struct wps_data *)data),
+                                               index ? data->albumart2 : data->albumart);
+    struct itunesdb_art art;
+    if (!aa || !playback_skip_art(&art))
+        return false;
+    if (kept_art[index].width > 0 && kept_art[index].handle < 0
+        && kept_art[index].offset == art.offset && !strcmp(kept_art[index].path, art.path))
+        return true;
+
+    struct bitmap bm;
+    memset(&bm, 0, sizeof(bm));
+    bm.width = MIN(aa->width, ART_KEPT_SIZE);
+    bm.height = MIN(aa->height, ART_KEPT_SIZE);
+    bm.data = (unsigned char *)kept_art[index].pixels;
+    kept_art[index].width = 0;
+    if (itunesdb_load_art(&art, &bm, sizeof(bm) + sizeof(kept_art[index].pixels)) < 0)
+        return false;
+    kept_art[index].width = bm.width;
+    kept_art[index].height = bm.height;
+    kept_art[index].handle = -1;
+    kept_art[index].offset = art.offset;
+    strcpy(kept_art[index].path, art.path);
+    return true;
+}
+#endif
+
 #ifdef ITUNESDB_HAVE_ART
 /* The cover beside the menus. It's larger than any Finder keeps and the panel is rarely
    on screen when a track changes, so playback doesn't load it, and it's scaled here
@@ -888,6 +924,11 @@ bool skin_art_found(const struct wps_data *data, int handle)
 #endif
 
     art_seen(0, handle);
+#if defined(ITUNESDB_HAVE_ART) && defined(AUDIO_FAST_SKIP_PREVIEW)
+    struct itunesdb_art art;
+    if (handle < 0 && !art_is_kept(0) && playback_skip_art(&art))
+        return true;
+#endif
     return handle >= 0 || art_is_kept(0);
 }
 
@@ -903,6 +944,14 @@ int skin_art_handle(const struct wps_data *data, int index, int handle)
     }
 
     art_seen(index, handle);
+#if defined(ITUNESDB_HAVE_ART) && defined(AUDIO_FAST_SKIP_PREVIEW)
+    if (skip_art_ready(data, index))
+    {
+        /* and as one it had, it stays when the track changes until its own is in */
+        kept_art[index].had_cover = true;
+        return SKIN_ART_KEPT;
+    }
+#endif
     if (handle < 0 && kept_art[index].width > 0 && art_is_kept(index))
         return SKIN_ART_KEPT;
     return handle;

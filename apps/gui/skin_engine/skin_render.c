@@ -51,6 +51,7 @@
 #include "list.h"
 #include "wps.h"
 #include "strmemccpy.h"
+#include "itunesdb.h"
 
 #define MAX_LINE 1024
 
@@ -872,6 +873,21 @@ void skin_render_viewport(struct skin_element* viewport, struct gui_wps *gwps,
     wps_display_images(gwps, &skin_viewport->vp);
 }
 
+#ifdef HAVE_ALBUMART
+/* Now Playing's colours for the cover it shows */
+static bool update_cover_colours(const struct wps_data *data)
+{
+#if defined(ITUNESDB_HAVE_ART) && defined(AUDIO_FAST_SKIP_PREVIEW)
+    /* the one from the database, while a skip is on its way to its track */
+    struct itunesdb_art art;
+    if (playback_skip_art(&art) && art.colour != COVER_COLOUR_UNKNOWN)
+        return cover_palette_update(COVER_ART_BY_COLOUR, art.colour);
+#endif
+    return cover_palette_update(playback_current_aa_hid(data->playback_aa_slot),
+                                playback_current_cover_colour());
+}
+#endif
+
 void skin_render(struct gui_wps *gwps, unsigned refresh_mode)
 {
     const int vp_is_appearing = (VP_DRAW_WASHIDDEN|VP_DRAW_HIDEABLE);
@@ -887,8 +903,7 @@ void skin_render(struct gui_wps *gwps, unsigned refresh_mode)
 
 #ifdef HAVE_ALBUMART
     if (data->playback_aa_slot >= 0 && data == skin_get_gwps(WPS, SCREEN_MAIN)->data
-        && cover_palette_update(playback_current_aa_hid(data->playback_aa_slot),
-                                playback_current_cover_colour()))
+        && update_cover_colours(data))
     {
         /* all in the new colours in one go */
         refresh_mode = old_refresh_mode = SKIN_REFRESH_ALL;
