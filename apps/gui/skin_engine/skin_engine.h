@@ -75,6 +75,8 @@ const fb_data *skin_backdrop_buffer(int backdrop_id);
 #define SKIN_ART_MENU (-3)
 int skin_art_handle(const struct wps_data *data, int index, int handle);
 bool skin_art_found(const struct wps_data *data, int handle);
+bool skin_art_available(int handle);
+bool skin_art_colours_update(const struct wps_data *data);
 bool skin_art_kept_expired(void);
 #endif
 void skin_backdrop_load_setting(void);

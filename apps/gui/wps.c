@@ -605,7 +605,7 @@ static bool display_mode_available(enum wps_display_mode mode)
             /* needs a skin with a second, full screen album art */
             struct wps_data *data = skin_get_gwps(WPS, SCREEN_MAIN)->data;
             return data->playback_aa_slot2 >= 0
-                && playback_current_aa_hid(data->playback_aa_slot2) >= 0;
+                && skin_art_available(playback_current_aa_hid(data->playback_aa_slot2));
         }
 #else
             return false;

@@ -2020,6 +2020,19 @@ static int audio_load_albumart(struct track_info *infop,
                          && itunesdb_find_art(track_id3->path, &ipod_art);
     if (have_ipod_art)
         infop->cover_colour = ipod_art.colour;
+#ifdef HAVE_SKIP_ART
+    /* The track starting now: Now Playing reads its cover from the iPod's covers itself,
+       as at a skip, and the audio opens without waiting for it. A track loaded ahead
+       has its covers in the buffer for when it starts. */
+    if (have_ipod_art && is_current_track
+        && global_settings.album_art != AA_PREFER_IMAGE_FILE)
+    {
+        clear_last_folder_album_art();
+        track_info_sync(infop);
+        button_queue_post(BUTTON_NONE, 0);
+        return true;
+    }
+#endif
 #endif
 
     /* the smallest first: on the WPS it is the one on screen */

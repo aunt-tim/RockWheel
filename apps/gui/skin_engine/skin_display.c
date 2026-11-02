@@ -764,6 +764,7 @@ static struct {
 #ifdef ITUNESDB_HAVE_ART
     uint32_t offset;
     char path[sizeof(((struct itunesdb_art *)0)->path)];
+    uint32_t colour;
 #endif
     bool had_cover; /* it had one when last looked at */
     bool keeping;   /* it has none now, and the copy stays until then */
@@ -839,15 +840,26 @@ static void draw_kept_album_art(struct gui_wps *gwps, struct skin_albumart *aa,
 }
 
 #if defined(ITUNESDB_HAVE_ART) && defined(AUDIO_FAST_SKIP_PREVIEW)
-/* While a skip is on its way to a track that isn't in the buffer, Now Playing already
-   shows what the database tells of it, and the cover from there goes into the copy
-   kept until the buffer has the track's own, which is the same */
-static bool skip_art_ready(const struct wps_data *data, int index)
+/* The cover Finder made for the track Now Playing shows, when the buffer has none of it:
+   while a skip is on its way to a track that isn't in the buffer, as Now Playing already
+   shows what the database tells of it, and for the track that started then, as playback
+   leaves its cover to Now Playing */
+static bool shown_db_art(int handle, struct itunesdb_art *art)
+{
+    if (playback_skip_art(art))
+        return true;
+    const struct mp3entry *id3 = get_wps_state()->id3;
+    return handle < 0 && id3 && id3->path[0] && global_settings.album_art != AA_OFF
+           && (audio_status() & AUDIO_STATUS_PLAY) && itunesdb_find_art(id3->path, art);
+}
+
+/* That cover, in the copy kept between covers */
+static bool db_art_ready(const struct wps_data *data, int index, int handle)
 {
     struct skin_albumart *aa = SKINOFFSETTOPTR(get_skin_buffer((struct wps_data *)data),
                                                index ? data->albumart2 : data->albumart);
     struct itunesdb_art art;
-    if (!aa || !playback_skip_art(&art))
+    if (!aa || !shown_db_art(handle, &art))
         return false;
     if (kept_art[index].width > 0 && kept_art[index].handle < 0
         && kept_art[index].offset == art.offset && !strcmp(kept_art[index].path, art.path))
@@ -866,6 +878,11 @@ static bool skip_art_ready(const struct wps_data *data, int index)
     kept_art[index].handle = -1;
     kept_art[index].offset = art.offset;
     strcpy(kept_art[index].path, art.path);
+    /* one whose album wasn't given its colour at an import */
+    kept_art[index].colour = art.colour;
+    if (art.colour == COVER_COLOUR_UNKNOWN && global_settings.cover_colours != COVER_COLOURS_OFF)
+        kept_art[index].colour = cover_palette_colour(kept_art[index].pixels, bm.width,
+                                                      bm.height);
     return true;
 }
 #endif
@@ -923,13 +940,44 @@ bool skin_art_found(const struct wps_data *data, int handle)
         return handle >= 0;
 #endif
 
-    art_seen(0, handle);
 #if defined(ITUNESDB_HAVE_ART) && defined(AUDIO_FAST_SKIP_PREVIEW)
     struct itunesdb_art art;
-    if (handle < 0 && !art_is_kept(0) && playback_skip_art(&art))
+    if (handle < 0 && shown_db_art(handle, &art))
+    {
+        art_seen(0, 0); /* as one it has */
+        return true;
+    }
+#endif
+    art_seen(0, handle);
+    return handle >= 0 || art_is_kept(0);
+}
+
+/* Whether Now Playing has a cover to show, with the handle of the buffer's */
+bool skin_art_available(int handle)
+{
+#if defined(ITUNESDB_HAVE_ART) && defined(AUDIO_FAST_SKIP_PREVIEW)
+    struct itunesdb_art art;
+    if (handle < 0 && shown_db_art(handle, &art))
         return true;
 #endif
-    return handle >= 0 || art_is_kept(0);
+    return handle >= 0;
+}
+
+/* Now Playing's colours for the cover it shows */
+bool skin_art_colours_update(const struct wps_data *data)
+{
+    const int handle = playback_current_aa_hid(data->playback_aa_slot);
+#if defined(ITUNESDB_HAVE_ART) && defined(AUDIO_FAST_SKIP_PREVIEW)
+    struct itunesdb_art art;
+    if (shown_db_art(handle, &art))
+    {
+        if (art.colour == COVER_COLOUR_UNKNOWN && db_art_ready(data, 0, handle))
+            art.colour = kept_art[0].colour;
+        if (art.colour != COVER_COLOUR_UNKNOWN)
+            return cover_palette_update(COVER_ART_BY_COLOUR, art.colour);
+    }
+#endif
+    return cover_palette_update(handle, playback_current_cover_colour());
 }
 
 int skin_art_handle(const struct wps_data *data, int index, int handle)
@@ -943,15 +991,15 @@ int skin_art_handle(const struct wps_data *data, int index, int handle)
         return handle;
     }
 
-    art_seen(index, handle);
 #if defined(ITUNESDB_HAVE_ART) && defined(AUDIO_FAST_SKIP_PREVIEW)
-    if (skip_art_ready(data, index))
+    if (db_art_ready(data, index, handle))
     {
-        /* and as one it had, it stays when the track changes until its own is in */
-        kept_art[index].had_cover = true;
+        /* as one it has, so it stays when the track changes until the next is in */
+        art_seen(index, 0);
         return SKIN_ART_KEPT;
     }
 #endif
+    art_seen(index, handle);
     if (handle < 0 && kept_art[index].width > 0 && art_is_kept(index))
         return SKIN_ART_KEPT;
     return handle;
