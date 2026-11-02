@@ -84,11 +84,15 @@ static inline unsigned int data_level(int quarter_secs)
 #define MIN_BUFFER_SIZE     (BYTERATE * 8)
 /* 1 seconds of buffer is low data */
 #define LOW_DATA            data_level(4)
+/* Decoded before the sound starts, half a second: from there the decoder stays ahead
+   even with the interface busy, and a whole second only kept the music waiting */
+#define START_DATA          data_level(2)
 #else
 #define PCMBUF_WATERMARK    (BYTERATE / 4)  /* 0.25 seconds */
 #define MIN_BUFFER_SIZE     (BYTERATE * 1)
 /* under watermark is low data */
 #define LOW_DATA            pcmbuf_watermark
+#define START_DATA          LOW_DATA
 #endif
 
 /* Describes each audio packet - keep it small since there are many of them */
@@ -505,8 +509,8 @@ void * pcmbuf_request_buffer(int *count)
         /* and not after the UI, as it may have been left */
         boost_codec_thread(3);
 
-        /* If pre-buffered to the watermark, start playback */
-        if (!pcmbuf_data_critical())
+        /* If pre-buffered enough, start playback */
+        if (pcmbuf_unplayed_bytes() >= START_DATA)
             start_audio_playback();
     }
 
