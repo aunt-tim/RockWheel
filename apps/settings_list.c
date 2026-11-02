@@ -884,7 +884,7 @@ static void sound_check_changed(int value)
 {
     (void)value;
     replaygain_update();
-    dsp_change_heard_now();
+    dsp_change_heard_now(NULL);
 }
 
 /* perform shuffle/unshuffle of the current playlist based on the boolean provided */

@@ -982,7 +982,9 @@ static int eq_get_preset(void);
 
 static void eq_set_preset(int preset)
 {
-    const bool changed = preset != eq_get_preset();
+    /* on and set to none is a setting of its own, which Off changes too */
+    const bool changed = preset != eq_get_preset()
+                         || (preset == 0 && global_settings.eq_enabled);
     global_settings.eq_enabled = preset > 0;
     if (preset > 0)
     {
@@ -991,9 +993,13 @@ static void eq_set_preset(int preset)
         /* down by the largest boost, so that loud music doesn't clip */
         global_settings.eq_precut = eq_preset_precut(preset);
     }
-    eq_apply();
     if (changed)
-        dsp_change_heard_now();
+    {
+        dsp_change_heard_now(eq_apply);
+        settings_save();
+    }
+    else
+        eq_apply();
 }
 
 void eq_update_precut(void)

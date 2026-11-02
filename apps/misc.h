@@ -251,8 +251,10 @@ void replaygain_update(void);
 
 /* Makes a change to what the DSP does heard at once: it goes on as music is
    decoded, ahead of the seconds of it in the PCM buffer, so those are decoded
-   again from what is playing now, as a seek does. */
-void dsp_change_heard_now(void);
+   again from what is playing now, as a seek does. change(), if any, is made after
+   the music has stopped, so that a volume that goes with it isn't heard on the
+   old music. */
+void dsp_change_heard_now(void (*change)(void));
 
 void push_current_activity(enum current_activity screen);
 void push_activity_without_refresh(enum current_activity screen);

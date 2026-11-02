@@ -4316,6 +4316,13 @@ void audio_pre_ff_rewind(void)
     audio_queue_post(Q_AUDIO_PRE_FF_REWIND, 0);
 }
 
+/* The same, returning once the track is no longer heard */
+void audio_pre_ff_rewind_wait(void)
+{
+    LOGFQUEUE("audio >| audio Q_AUDIO_PRE_FF_REWIND");
+    audio_queue_send(Q_AUDIO_PRE_FF_REWIND, 0);
+}
+
 /* Seek to the new time in the current track */
 void audio_ff_rewind(long time)
 {

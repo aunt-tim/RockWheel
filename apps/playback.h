@@ -86,6 +86,7 @@ struct bufopen_bitmap_data {
 unsigned int audio_track_count(void);
 long audio_filebufused(void);
 void audio_pre_ff_rewind(void);
+void audio_pre_ff_rewind_wait(void);
 void audio_skip(int direction);
 
 void audio_set_cuesheet(bool enable);
