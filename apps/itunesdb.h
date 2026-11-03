@@ -128,6 +128,14 @@ struct itunesdb_art {
 /* the cover Finder made for the file at path */
 bool itunesdb_find_art(const char *path, struct itunesdb_art *art);
 
+/* how many tracks have a cover */
+int itunesdb_art_count(void);
+
+/* the cover of a track picked by random, from an album other than these two
+   slides if it can be */
+bool itunesdb_random_art(uint32_t random, int not_slide, int nor_slide,
+                         struct itunesdb_art *art);
+
 /* reads the cover into bm, scaled up or down to fit its width and height;
    returns the size of the pixels or -1. It opens the ithmb file itself, and
    only when the frame isn't the one read last. */

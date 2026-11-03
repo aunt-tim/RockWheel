@@ -386,6 +386,34 @@ static void draw_bmp_part(struct gui_wps *gwps, const struct bitmap *bm,
     gwps->display->bmp_part(bm, src_x, src_y, x, y, width, height);
 }
 
+/* the volume bar as drawn, toward the volume: a gap that halves each frame */
+static long volume_bar_shown = -1, volume_bar_target;
+static long volume_bar_tick;
+
+bool skin_volume_bar_moving(void)
+{
+    return volume_bar_shown >= 0 && volume_bar_shown != volume_bar_target
+           && TIME_BEFORE(current_tick, volume_bar_tick + HZ);
+}
+
+static unsigned long volume_bar_step(unsigned long target)
+{
+    /* at once when it wasn't on the screen a moment ago */
+    if (volume_bar_shown < 0 || !TIME_BEFORE(current_tick, volume_bar_tick + HZ/2))
+        volume_bar_shown = target;
+    else if (volume_bar_shown != (long)target)
+    {
+        long gap = (long)target - volume_bar_shown;
+        long step = gap / 2;
+        if (step == 0)
+            step = gap;
+        volume_bar_shown += step;
+    }
+    volume_bar_target = target;
+    volume_bar_tick = current_tick;
+    return volume_bar_shown;
+}
+
 void draw_progressbar(struct gui_wps *gwps, struct skin_viewport* skin_viewport,
                       int line, struct progressbar *pb)
 {
@@ -420,6 +448,7 @@ void draw_progressbar(struct gui_wps *gwps, struct skin_viewport* skin_viewport,
         length = maxvol - minvol;
         end = global_status.volume - minvol;
 #endif
+        end = volume_bar_step(end);
     }
     else if (pb->type == SKIN_TOKEN_BATTERY_PERCENTBAR)
     {
@@ -813,6 +842,11 @@ static void keep_album_art(int index, int handle)
     kept_art[index].handle = handle;
 }
 
+#if LCD_DEPTH >= 16
+static void draw_album_art_turned(struct screen *display, const struct bitmap *bmp,
+                                  int x, int y, int width, int height);
+#endif
+
 static void draw_art_pixels(struct gui_wps *gwps, struct skin_albumart *aa,
                             const fb_data *pixels, int width, int height)
 {
@@ -827,6 +861,15 @@ static void draw_art_pixels(struct gui_wps *gwps, struct skin_albumart *aa,
     else if (aa->yalign & WPS_ALBUMART_ALIGN_CENTER)
         y += (aa->height - height) / 2;
 
+#if LCD_DEPTH >= 16
+    if (aa->turned && gwps->display->depth >= 16)
+    {
+        struct bitmap bm = { .width = width, .height = height,
+                             .data = (unsigned char *)pixels };
+        draw_album_art_turned(gwps->display, &bm, x, y, width, height);
+        return;
+    }
+#endif
     gwps->display->bitmap_part(pixels, 0, 0,
                                STRIDE(gwps->display->screen_type, width, height),
                                x, y, width, height);
@@ -1309,6 +1352,87 @@ void draw_peakmeters(struct gui_wps *gwps, int line_number,
 #ifdef HAVE_ALBUMART
 /* Draw the album art bitmap from the given handle ID onto the given WPS.
    Call with clear = true to clear the bitmap instead of drawing it. */
+#if LCD_DEPTH >= 16
+/* A cover of %Cl(...,p): turned a little away to the right, its right edge this
+   much of 256 shorter than its left, both about their middle, and under it its
+   reflection, which fades out over as many rows as the viewport has below it */
+#define TURN_SHRINK      28
+#define REFLECTION_ALPHA 80 /* of 256, where it meets the cover */
+
+/* over on under, alpha of 256 */
+static fb_data mix_pixel(fb_data under, fb_data over, int alpha)
+{
+    const unsigned u = FB_UNPACK_SCALAR_LCD(under);
+    const unsigned o = FB_UNPACK_SCALAR_LCD(over);
+    int r = RGB_UNPACK_RED(u), g = RGB_UNPACK_GREEN(u), b = RGB_UNPACK_BLUE(u);
+    r += (RGB_UNPACK_RED(o) - r) * alpha / 256;
+    g += (RGB_UNPACK_GREEN(o) - g) * alpha / 256;
+    b += (RGB_UNPACK_BLUE(o) - b) * alpha / 256;
+    return FB_SCALARPACK(LCD_RGBPACK(r, g, b));
+}
+
+static void draw_album_art_turned(struct screen *display, const struct bitmap *bmp,
+                                  int x, int y, int width, int height)
+{
+    struct viewport *vp = display->set_viewport(NULL);
+    display->set_viewport(vp);
+
+    /* a plain ground, without the theme's placeholder for the cover and its shadow,
+       which would show where the cover is shorter */
+    unsigned ground = vp->bg_pattern;
+#ifdef HAVE_ALBUMART
+    const struct cover_palette *palette = cover_palette_get();
+    if (palette && palette->whole_screen)
+        ground = palette->background;
+#endif
+    const unsigned fg = display->get_foreground();
+    display->set_drawmode(DRMODE_SOLID);
+    display->set_foreground(ground);
+    display->fillrect(0, 0, vp->width, vp->height);
+    display->set_foreground(fg);
+
+    const fb_data *src = (const fb_data *)bmp->data;
+    const int stride = STRIDE_MAIN(bmp->width, bmp->height);
+    const int full = height << 8;
+    const int reflection = vp->height - y - height;
+    width = MIN(width, vp->width - x);
+
+    for (int col = 0; col < width; col++)
+    {
+        const int sx = vp->x + x + col;
+        /* the column's height and top, in 256ths of a pixel */
+        const int h = full - height * TURN_SHRINK * col / MAX(width - 1, 1);
+        const int top = (full - h) / 2;
+        const int bottom = top + h;
+
+        for (int row = top >> 8; row <= (bottom - 1) >> 8; row++)
+        {
+            if (y + row < 0 || y + row >= vp->height)
+                continue;
+            const int from = row << 8;
+            const int covered = MIN(from + 256, bottom) - MAX(from, top);
+            const int src_row = MIN((from + 128 - top) * height / h, height - 1);
+            const fb_data pixel = src[MAX(src_row, 0) * stride + col];
+            fb_data *dst = FBADDR(sx, vp->y + y + row);
+            *dst = covered >= 256 ? pixel : mix_pixel(*dst, pixel, covered);
+        }
+
+        /* upside down, scaled as the column, from its bottom edge */
+        const int first = (bottom + 255) >> 8;
+        for (int i = 0; i < reflection; i++)
+        {
+            const int row = first + i;
+            const int src_row = height - 1 - ((i << 8) + 128) * height / h;
+            if (src_row < 0 || y + row >= vp->height)
+                break;
+            fb_data *dst = FBADDR(sx, vp->y + y + row);
+            *dst = mix_pixel(*dst, src[src_row * stride + col],
+                             REFLECTION_ALPHA * (reflection - i) / reflection);
+        }
+    }
+}
+#endif
+
 void draw_album_art(struct gui_wps *gwps, struct skin_albumart *aa,
                     int handle_id, bool clear)
 {
@@ -1347,6 +1471,24 @@ void draw_album_art(struct gui_wps *gwps, struct skin_albumart *aa,
         else if (aa->yalign & WPS_ALBUMART_ALIGN_CENTER)
             y += (aa->height - height) / 2;
     }
+
+#if LCD_DEPTH >= 16
+    if (aa->turned && gwps->display->depth >= 16)
+    {
+        if (!clear)
+            draw_album_art_turned(gwps->display, bmp, x, y, width, height);
+        else
+        {
+            /* the reflection too, which is the rest of the viewport */
+            struct viewport *vp = gwps->display->set_viewport(NULL);
+            gwps->display->set_viewport(vp);
+            gwps->display->set_drawmode(DRMODE_SOLID|DRMODE_INVERSEVID);
+            gwps->display->fillrect(0, 0, vp->width, vp->height);
+            gwps->display->set_drawmode(DRMODE_SOLID);
+        }
+        return;
+    }
+#endif
 
     if (!clear)
     {

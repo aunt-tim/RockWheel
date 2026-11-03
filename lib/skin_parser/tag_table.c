@@ -168,6 +168,7 @@ static const struct tag_info legal_tags[] =
     TAG(SKIN_TOKEN_DISK_USED,             "nu", BAR_PARAMS, SKIN_REFRESH_DYNAMIC),
     TAG(SKIN_TOKEN_MENU_SETTINGS_SELECTED, "LS", "", SKIN_REFRESH_DYNAMIC),
     TAG(SKIN_TOKEN_MENU_WIDE,             "LW", "", SKIN_REFRESH_DYNAMIC),
+    TAG(SKIN_TOKEN_COVER_DRIFT,           "Ck", "", SKIN_REFRESH_STATIC),
     /* the volume limit, as "Volume Limit: 80%", if one is set; the volume, as
        "Volume: 62%", by the share of the volume bar; Night Mode on */
     TAG(SKIN_TOKEN_VOLUME_LIMIT,          "nV", "", SKIN_REFRESH_DYNAMIC),
@@ -228,7 +229,7 @@ static const struct tag_info legal_tags[] =
     TAG(SKIN_TOKEN_DRAW_INBUILTBAR,       "wi", "", SKIN_REFRESH_STATIC|NOBREAK),
 
     TAG(SKIN_TOKEN_LOAD_FONT,             "Fl" , "IF|I", 0|NOBREAK),
-    TAG(SKIN_TOKEN_ALBUMART_LOAD,         "Cl" , "[iP][iP][iP][iP]|ss", 0|NOBREAK),
+    TAG(SKIN_TOKEN_ALBUMART_LOAD,         "Cl" , "[iP][iP][iP][iP]|sss", 0|NOBREAK),
     TAG(SKIN_TOKEN_ALBUMART_DISPLAY,      "Cd" , "", SKIN_REFRESH_STATIC),
     TAG(SKIN_TOKEN_ALBUMART_FOUND,        "C" , "", SKIN_REFRESH_STATIC),
 

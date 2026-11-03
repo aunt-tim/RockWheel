@@ -5399,7 +5399,7 @@ static bool init(void)
 #endif
 
 #ifdef ITUNESDB_HAVE_ART
-    /* music waits while here, so a track that is chosen plays on the WPS */
+    /* a track that is chosen plays on the WPS */
     if (pf_cfg.auto_wps == 0)
         pf_cfg.auto_wps = 2;
 #endif
@@ -6149,8 +6149,6 @@ enum plugin_status plugin_start(const void *parameter)
     const char *file = parameter;
     bool file_id3 = (parameter && (((char *) parameter)[0] == '/'));
 #ifdef ITUNESDB_HAVE_ART
-    bool paused_music = false;
-
     if (parameter && !rb->strcmp(parameter, ITUNESDB_ALBUM_LIST))
     {
         atexit(cleanup);
@@ -6171,21 +6169,8 @@ enum plugin_status plugin_start(const void *parameter)
 #ifdef USEGSLIB
         grey_show(true);
 #endif
-#ifdef ITUNESDB_HAVE_ART
-        /* the codec takes the CPU from the animation, 8 frames a second
-           with music against 22 without: it waits while the covers go by */
-        if (rb->audio_status() == AUDIO_STATUS_PLAY)
-        {
-            rb->audio_pause();
-            paused_music = true;
-        }
-#endif
+        /* the music goes on while the covers go by */
         ret = pictureflow_main();
-#ifdef ITUNESDB_HAVE_ART
-        /* not when an album was started here meanwhile, which plays */
-        if (paused_music && (rb->audio_status() & AUDIO_STATUS_PAUSE))
-            rb->audio_resume();
-#endif
     }
     else
         ret = PLUGIN_OK;

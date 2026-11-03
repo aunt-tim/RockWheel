@@ -21,6 +21,7 @@
 #include "disk.h"
 #include "itunesdb.h"
 #include "menu.h"
+#include "cover_drift.h"
 #include "font.h"
 #include <stdio.h>
 #include "string-extra.h"
@@ -1665,6 +1666,8 @@ const char *get_token_value(struct gui_wps *gwps,
 #endif
         case SKIN_TOKEN_MENU_WIDE:
             return menu_wide() ? "w" : NULL;
+        case SKIN_TOKEN_COVER_DRIFT:
+            return cover_drift_available() ? "k" : NULL;
         case SKIN_TOKEN_VOLUME_LIMIT:
         {
             if (global_settings.volume_limit >= sound_max(SOUND_VOLUME))

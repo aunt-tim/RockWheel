@@ -70,6 +70,7 @@
 
 /* gui api */
 #include "list.h"
+#include "slide.h"
 #include "splash.h"
 #include "quickscreen.h"
 #include "shortcuts.h"
@@ -424,6 +425,13 @@ static int update_dir(void)
     bool id3db = *tc.dirfilter == SHOW_ID3DB;
 #else
     const bool id3db = false;
+#endif
+
+#ifdef HAVE_TAGCACHE
+    /* below the Music menu, the lists take the whole screen, without the
+       panel beside them */
+    if (id3db && menu_wide() != (tc.dirlevel > 0))
+        menu_set_wide(tc.dirlevel > 0);
 #endif
 
     /* Ensure that list is initialized before update_dir returns */
@@ -803,7 +811,10 @@ static int dirbrowse(void)
                 {
                     /* the playlist catalogue is a screen of its own */
                     if (button == ACTION_STD_OK)
+                    {
+                        slide_prepare(SLIDE_ENTER);
                         return exit_to_new_screen(GO_TO_PLAYLISTS_SCREEN);
+                    }
                     button = ACTION_NONE;
                 }
                 else if (customaction == ONPLAY_CUSTOMACTION_COVERFLOW)
@@ -845,6 +856,8 @@ static int dirbrowse(void)
                         return exit_to_new_screen(GO_TO_PREVIOUS);
                     }
                 }
+                int level = tc.dirlevel;
+                slide_prepare(SLIDE_ENTER);
 #ifdef HAVE_TAGCACHE
                 switch (id3db ? tagtree_enter(&tc, true) : ft_enter(&tc))
 #else
@@ -864,6 +877,9 @@ static int dirbrowse(void)
                     default:
                         break;
                 }
+                /* a file opened rather than a level entered */
+                if (tc.dirlevel == level)
+                    slide_cancel();
                 restore = do_restore_display;
                 break;
 
@@ -875,6 +891,7 @@ static int dirbrowse(void)
                     return exit_to_new_screen(GO_TO_PREVIOUS);
 #endif
                 if (*tc.dirfilter > NUM_FILTER_MODES && tc.dirlevel < 1) {
+                    slide_prepare(SLIDE_LEAVE);
                     exit_func = true;
                     break;
                 }
@@ -883,9 +900,11 @@ static int dirbrowse(void)
                 {
                     if (oldbutton == ACTION_TREE_PGLEFT)
                         break;
-                    else
-                        return exit_to_new_screen(GO_TO_ROOT);
+                    slide_prepare(SLIDE_LEAVE);
+                    return exit_to_new_screen(GO_TO_ROOT);
                 }
+
+                slide_prepare(SLIDE_LEAVE);
 
 #ifdef HAVE_TAGCACHE
                 if (id3db)
@@ -901,10 +920,15 @@ static int dirbrowse(void)
             case ACTION_TREE_STOP:
                 /* holding Play goes to the track playing, if there is one */
                 if (audio_status())
+                {
+                    slide_prepare(SLIDE_ENTER);
                     return exit_to_new_screen(GO_TO_PREVIOUS_MUSIC);
+                }
                 break;
 
             case ACTION_STD_MENU:
+                /* held: the main menu, back the way Menu goes */
+                slide_prepare(SLIDE_LEAVE);
                 return exit_to_new_screen(GO_TO_ROOT);
                 break;
 
@@ -1152,6 +1176,7 @@ static struct tree_context backups[NUM_TC_BACKUP];
 static int backup_count = -1;
 int rockbox_browse(struct browse_context *browse)
 {
+    const bool was_wide = menu_wide();
     tc.is_browsing = (browse != NULL);
     int ret_val = 0;
     int dirfilter = SHOW_ALL;
@@ -1225,6 +1250,8 @@ int rockbox_browse(struct browse_context *browse)
 
     tc.is_browsing = false;
     tc.dirfilter = prev_dirfilter; /* Bugfix restore dirfilter*/
+    if (menu_wide() != was_wide)
+        menu_set_wide(was_wide);
 
     backup_count--;
     if (backup_count >= 0)

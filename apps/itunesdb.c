@@ -2850,6 +2850,37 @@ bool itunesdb_find_art(const char *path, struct itunesdb_art *art)
     return true;
 }
 
+int itunesdb_art_count(void)
+{
+    return art_index.handle > 0 ? (int)art_index.count : 0;
+}
+
+bool itunesdb_random_art(uint32_t random, int not_slide, int nor_slide,
+                         struct itunesdb_art *art)
+{
+    const int count = itunesdb_art_count();
+    if (count <= 0)
+        return false;
+    struct art_entry entry;
+    core_pin(art_index.handle);
+    const struct art_entry *entries = core_get_data(art_index.handle);
+    /* a few tries at another album, as one with many tracks comes up more */
+    for (int i = 0; i < 8; i++)
+    {
+        entry = entries[random % count];
+        random = random * 1664525u + 1013904223u;
+        if (entry.slide != not_slide && entry.slide != nor_slide)
+            break;
+    }
+    core_unpin(art_index.handle);
+    if (!art_place(entry.format, entry.file, entry.offset, art))
+        return false;
+    art->slide = entry.slide;
+    if (entry.slide > 0)
+        art->colour = slide_colour(entry.slide - 1);
+    return true;
+}
+
 /* the frame read into raw, from the sector it starts in */
 static const fb_data *read_frame(const struct itunesdb_art *art,
                                  unsigned char *raw, size_t room)

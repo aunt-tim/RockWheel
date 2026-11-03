@@ -151,8 +151,7 @@ struct viewport *sb_skin_get_info_vp(enum screen_type screen)
     {
         /* UI viewport changed, so force a redraw */
         oldinfovp_label[screen] = infovp_label[screen];
-        viewportmanager_theme_enable(screen, false, NULL);
-        viewportmanager_theme_undo(screen, true);
+        viewportmanager_theme_redraw(screen);
     }
     if (infovp_label[screen] == VP_DEFAULT_LABEL)
         label = VP_DEFAULT_LABEL_STRING;

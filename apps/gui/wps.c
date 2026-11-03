@@ -66,6 +66,7 @@
 #include "lyrics.h"
 #include "night_mode.h"
 #include "skin_engine/cover_palette.h"
+#include "slide.h"
 #ifdef HAVE_TAGCACHE
 #include "tagcache.h"
 #endif
@@ -869,6 +870,7 @@ static void gwps_enter_wps(bool theme_enabled)
         display->clear_display();
         skin_update(WPS, i, SKIN_REFRESH_ALL);
     }
+    slide_screen_drawn();
 #ifdef HAVE_TOUCHSCREEN
     gwps = skin_get_gwps(WPS, SCREEN_MAIN);
     skin_disarm_touchregions(gwps);
@@ -1058,7 +1060,12 @@ long gui_wps_show(void)
         if (button && !IS_SYSEVENT(button) )
             storage_spin();
 
-        button = skin_wait_for_action(WPS, CONTEXT_WPS|ALLOW_SOFTLOCK, HZ/5);
+        /* a volume bar on its way to a new level is drawn again soon */
+        const bool volume_moving = skin_volume_bar_moving();
+        button = skin_wait_for_action(WPS, CONTEXT_WPS|ALLOW_SOFTLOCK,
+                                      volume_moving ? HZ/50 : HZ/5);
+        if (volume_moving && button == ACTION_NONE)
+            update = true;
 
         /* Exit if audio has stopped playing. This happens e.g. at end of
            playlist or if using the sleep timer. */
@@ -1128,6 +1135,7 @@ long gui_wps_show(void)
             /* back to wherever the WPS was entered from, as Menu does
                on a stock iPod */
             case ACTION_WPS_BROWSE:
+                slide_prepare(SLIDE_LEAVE);
                 gwps_leave_wps(true);
                 return GO_TO_PREVIOUS;
                 break;
@@ -1261,6 +1269,7 @@ long gui_wps_show(void)
                 break;
             /* menu key functions */
             case ACTION_WPS_MENU:
+                slide_prepare(SLIDE_LEAVE);
                 gwps_leave_wps(true);
                 return GO_TO_ROOT;
                 break;

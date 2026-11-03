@@ -94,9 +94,11 @@
 #%xl(x,FrameLeft.bmp,0,13)
 #%xl(y,FrameRight.bmp,140,13)
 #%xl(z,FrameBottom.bmp,0,136)
-%Cl(0,0,136,136,c,c)
+# the cover turned a little away, over its reflection: the viewport takes in the
+# backdrop's placeholder and shadow down to the bar, which it paints over
+%Cl(3,1,136,136,c,c,p)
 #%Vl(aa,7,39,144,142,-)
-%Vl(info,12,45,136,136,-)
+%Vl(info,9,44,142,162,-)
 %Cd
 %Vl(current,160,50,148,21,1)%Vf(000000)
 %t(8)%s%al%?it<%it|%fn>;%t(16)%al%?it<%it|%fn>
@@ -125,10 +127,9 @@
 %xl(v,Volume Left.bmp,0,0)
 %Vl(volume,34,204,13,19,-)
 %xd(v)
-# under the bar: the volume while it's turned and a second after, then the limit, if
-# one is set
+# under the bar: the volume limit, if one is set; the bar alone shows the volume
 %Vl(volume,58,227,204,13,2)%Vf(000000)
-%ac%?mv(1.0)<%nv|%?nV<%nV|%nv>>
+%ac%?nV<%nV|>
 %Vl(pb,0,207,45,14,2)%Vf(000000)
 %ar%pc
 %Vl(pb,273,207,47,14,2)%Vf(000000)

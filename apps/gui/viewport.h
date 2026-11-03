@@ -57,6 +57,11 @@ void viewportmanager_theme_enable(enum screen_type screen, bool enable,
  * currently enabled (i,e the undo doing nothing).
  * Should almost always be set to false except coming out of fully skinned screens */
 void viewportmanager_theme_undo(enum screen_type screen, bool force_redraw);
+/* The theme off and on again, so that it is drawn again with the screen under it,
+   which stays the screen it was */
+void viewportmanager_theme_redraw(enum screen_type screen);
+/* Whether the theme is shown on the screen now */
+bool viewportmanager_theme_shown(enum screen_type screen);
 
 /* call this when a theme changed */
 void viewportmanager_theme_changed(const int);

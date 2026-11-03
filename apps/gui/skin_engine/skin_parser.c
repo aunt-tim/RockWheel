@@ -1511,6 +1511,7 @@ static int parse_albumart_load(struct skin_element* element,
     /* reset albumart info in wps */
     aa->xalign = WPS_ALBUMART_ALIGN_CENTER; /* default */
     aa->yalign = WPS_ALBUMART_ALIGN_CENTER; /* default */
+    aa->turned = false;
 
     aa->x = percent_parse_param(get_param(element, 0), curr_vp->vp.width);
     aa->y =  percent_parse_param(get_param(element, 1), curr_vp->vp.height);
@@ -1586,6 +1587,9 @@ static int parse_albumart_load(struct skin_element* element,
                 break;
         }
     }
+    /* p: in perspective, see draw_album_art() */
+    if (element->params_count > 6 && !isdefault(get_param(element, 6)))
+        aa->turned = tolower(*get_param_text(element, 6)) == 'p';
     return 0;
 }
 

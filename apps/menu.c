@@ -60,6 +60,7 @@
 
 /* gui api */
 #include "list.h"
+#include "slide.h"
 
 #define MAX_MENUS 8
 /* used to allow for dynamic menus */
@@ -563,6 +564,8 @@ void menu_set_wide(bool on)
 static bool root_requested = false;
 void menu_request_root(void)
 {
+    /* back to the main menu as Menu goes back */
+    slide_prepare(SLIDE_LEAVE);
     root_requested = true;
 }
 
@@ -596,6 +599,16 @@ static enum menu_panel item_panel(const struct menu_item_ex *menu, int selected)
     }
 }
 
+/* Back from a screen opened from a menu: by a slide if it was entered by one, and
+   not at all if no list was drawn, as when a function only asked a question */
+static void slide_back(unsigned slides_before)
+{
+    if (slide_count() != slides_before)
+        slide_prepare(SLIDE_LEAVE);
+    else if (slide_waiting(SLIDE_ENTER))
+        slide_cancel(); /* but not one back to the main menu, from Menu held */
+}
+
 int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
             struct viewport parent[NB_SCREENS], bool hide_theme)
 {
@@ -611,6 +624,10 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
 
     bool in_stringlist, done = false;
     bool redraw_lists;
+    /* a menu that slid in slides out when it's left; one that just opened,
+       as over a list or Now Playing, closes as it opened */
+    bool slid_in = slide_waiting(SLIDE_ENTER);
+    unsigned slides;
 
     int old_audio_status = audio_status();
 
@@ -830,6 +847,7 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
                menu around this one, if this was opened by a function of it. */
             if (menu != &root_menu_)
             {
+                slide_prepare(SLIDE_LEAVE);
                 ret = GO_TO_ROOT;
                 done = true;
                 root_requested = true;
@@ -842,6 +860,9 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
 
             bool exiting_menu = false;
             in_stringlist = false;
+
+            if (stack_top > 0 || (slid_in && menu != &root_menu_))
+                slide_prepare(SLIDE_LEAVE);
 
             menu_callback(ACTION_EXIT_MENUITEM, menu, &lists);
 
@@ -901,6 +922,7 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
                         mstack[stack_top].selected = selected;
                         stack_top++;
                         menu = temp;
+                        slide_prepare(SLIDE_ENTER);
                         init_menu_lists(menu, &lists, 0, true, vps, buf, sizeof buf);
                     }
                     break;
@@ -908,6 +930,8 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
                 case MT_FUNCTION_CALL:
                 {
                     int return_value;
+                    slides = slide_count();
+                    slide_prepare(SLIDE_ENTER);
                     if (type == MT_FUNCTION_CALL_W_PARAM)
                     {
                         return_value = temp->function_param->function_w_param(
@@ -917,6 +941,7 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
                     {
                         return_value = temp->function->function();
                     }
+                    slide_back(slides);
                     if (!(menu->flags&MENU_EXITAFTERTHISMENU) ||
                             (temp->flags&MENU_EXITAFTERTHISMENU))
                     {
@@ -947,7 +972,10 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
                         redraw_lists = true;
                         break;
                     }
+                    slides = slide_count();
+                    slide_prepare(SLIDE_ENTER);
                     do_setting_from_menu(temp, vps);
+                    slide_back(slides);
                     init_menu_lists(menu, &lists, selected, false, vps, buf, sizeof buf);
                     redraw_lists = true;
 
@@ -965,11 +993,15 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
                         mstack[stack_top].selected = selected;
                         stack_top++;
                         menu = temp;
+                        slide_prepare(SLIDE_ENTER);
                         init_menu_lists(menu, &lists, 0, false, vps, buf, sizeof buf);
                         in_stringlist = true;
                     }
                     break;
                 case MT_RETURN_VALUE:
+                    /* the main menu's items open screens of their own */
+                    if (menu == &root_menu_)
+                        slide_prepare(SLIDE_ENTER);
                     ret = temp->value;
                     done = true;
                     break;
