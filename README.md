@@ -31,19 +31,15 @@ Plug it in and it appears in Finder as an iPod. Sync the way you always have, un
 
 <img src="docs/screenshots/usb.png" width="320" alt="Do not disconnect screen"> <img src="docs/screenshots/updating-library.png" width="320" alt="Library update with a progress bar">
 
-**Your library arrives as Finder synced it:** songs, playlists, ratings, covers, podcasts and audiobooks.
-
-**It goes both ways.** What you played and rated on the iPod is on your Mac after the next sync.
-
-**There's nothing to set up.** No sync app to install, and no settings to find.
+Your songs, playlists, ratings, covers, podcasts and audiobooks arrive just as Finder synced them. It works both ways: what you play and rate on the iPod is on your Mac after the next sync. There's no app to install and nothing to set up.
 
 ## A large library that stays fast
 
 RockWheel was developed with a real library of well over ten thousand songs, on a chip from 2005 with as little as 32 MB of memory.
 
-A song from the list of everything you own starts in under a second. When you skip, the next song and its cover are on the screen the moment you press, and the music follows a moment later.
+Any song from the list of all your songs starts in under a second. When you skip, the next song and its cover appear the moment you press, and the music follows right after.
 
-Lists keep up with your thumb, even while music plays. A slow turn of the wheel moves row by row, a quick one takes you through hundreds of songs in seconds, and as your thumb slows down the list does too, so you stop on the row you meant.
+Lists keep up with your thumb. Turn the wheel slowly and the list moves row by row. Turn it quickly and you pass hundreds of songs in seconds. As your thumb slows down, so does the list, and you stop on the row you wanted.
 
 Hundreds of new songs are in your library seconds after you unplug.
 
@@ -53,23 +49,21 @@ The iPod Video never had Cover Flow. Here it's the first item in the Music menu,
 
 <img src="docs/screenshots/cover-flow.png" width="320" alt="Cover Flow with seven covers on the screen">
 
-**Scrolling has weight to it.** Flick the wheel and the covers pick up the speed of your thumb, glide on by themselves and settle gently on an album. Another flick makes them faster, and resting your thumb stops them. It's the feeling of scrolling on the first iPod touch, on a click wheel.
+Scrolling has weight. Flick the wheel and the covers pick up the speed of your thumb, glide on their own and settle gently on an album. Flick again to go faster, or rest your thumb to stop. It feels like the first iPod touch, on a click wheel.
 
-**Nothing has to load.** You can go through thousands of covers without waiting for any of them, and the motion stays smooth.
+Thousands of covers go by without waiting for any of them to load, and the motion stays smooth.
 
 ## Now Playing
 
-Press Select to move from the cover to the lyrics, the scrubber and your rating.
+Press Select to move from the cover to the scrubber, your rating, a large cover and the lyrics. The lyrics follow the song line by line, if the track has time-synced lyrics or a `.lrc` file.
 
 <img src="docs/screenshots/now-playing.png" width="320" alt="Now Playing, with the format and bitrate beside a small sound wave"> <img src="docs/screenshots/large-art.png" width="320" alt="Large album art view">
 
 <img src="docs/screenshots/lyrics.png" width="320" alt="Time-synced lyrics"> <img src="docs/screenshots/rating.png" width="320" alt="Rating a track with the wheel">
 
-**Lyrics follow the song,** line by line, if the track has time-synced lyrics or a `.lrc` file.
-
 ## Colours from the album
 
-Now Playing can take on the colours of whatever you're listening to, and the screen changes together with the cover.
+Now Playing can take on the colours of the album you're listening to, and the screen changes together with the cover.
 
 <img src="docs/screenshots/cover-fill-dark.png" width="320" alt="Now Playing filled with the deep purple of the cover"> <img src="docs/screenshots/cover-fill-light.png" width="320" alt="Now Playing filled with the warm yellow of the cover">
 
@@ -77,27 +71,23 @@ Now Playing can take on the colours of whatever you're listening to, and the scr
 
 **Fill** paints the screen in the album's colour, so the cover melts into it. The text turns light or dark to stay easy to read.
 
-**Whole Screen** keeps the screen light and gives all of it a soft tint, down to the status bar and the progress bar.
+**Whole Screen** keeps the screen light and tints all of it softly, down to the status bar and the progress bar.
 
 **Text and Stars** leaves the screen white and colours only the words and your rating.
 
-It's off by default. Hold Select in Now Playing and choose Colours, or find Cover Colours in Settings.
+It's off by default. To turn it on, hold Select in Now Playing and choose Colours, or find Cover Colours in Settings.
 
 ## Dark theme and Night Mode
 
-The whole iPod can go dark: the menus, Now Playing, the dialogs, even the clock. It takes about half a second, and the music plays on.
+The whole iPod can go dark: the menus, Now Playing, the dialogs, even the clock. It switches in about half a second. To turn it on, hold Select in Now Playing, or find Dark Theme in Settings. The colours from the album work in the dark too.
 
 <img src="docs/screenshots/dark-now-playing.png" width="320" alt="Now Playing in the dark theme"> <img src="docs/screenshots/dark-home.png" width="320" alt="The main menu in the dark theme, with the playing album beside it">
 
 <img src="docs/screenshots/dark-settings.png" width="320" alt="Settings in the dark theme"> <img src="docs/screenshots/night-mode.png" width="320" alt="Night Mode and what it does when it's on">
 
-**To turn on the dark theme,** hold Select in Now Playing, or find it in Settings. The colours from the album work on it too.
+**Night Mode** is for the end of the day. It makes the iPod dark, silences the wheel, dims the screen and lowers the volume limit. You choose which of these it does, how dim the screen gets and how quiet the music.
 
-**Night Mode gets the iPod ready for the end of the day.** Turn it on and the iPod goes dark, silences the wheel, dims the screen and lowers the volume limit. You choose which of these it does, how dim and how quiet.
-
-**It can keep its own hours.** Give it a start and an end, past midnight if you like, and it comes on and goes off by itself. If you change it by hand in between, your choice holds until the next scheduled change.
-
-**When Night Mode ends, everything goes back to how it was.** If music is still playing when the schedule ends, the volume stays where it is, so nothing wakes you.
+It can also keep its own hours. Give it a start and an end, and it turns on and off by itself. If music is still playing when it ends, the volume stays where it is, so nothing wakes you.
 
 ## It feels like an iPod
 
@@ -109,25 +99,24 @@ The whole iPod can go dark: the menus, Now Playing, the dialogs, even the clock.
 
 <img src="docs/screenshots/eq.png" width="320" alt="The EQ, with a row for each pair of headphones"> <img src="docs/screenshots/eq-model.png" width="320" alt="The presets for one pair of headphones">
 
-**The menus you remember:** Music, Photos, Extras, Settings, Shuffle Songs and Now Playing, with your iPod's name at the top. Beside them is the album that's playing, a collage of your photos, or your iPod and its free space.
+The main menu is the one you remember: Music, Photos, Extras, Settings, Shuffle Songs and Now Playing, with your iPod's name at the top. Beside it you see the album that's playing, a collage of your photos, or your iPod and its free space.
 
-**Settings in one list,** grouped, with each value beside its name. Most change with a single press.
+Settings are in one list, in groups, with each value beside its name. Most of them change with a single press.
 
-**Shortcuts.** Hold Play for Now Playing from almost anywhere, and hold Menu to go to the main menu. Press Menu after holding Play to go back to the list you started the music from.
+Hold Select in Now Playing for a short menu. From there you can open Cover Flow, go to the song's artist or album, or change shuffle, repeat, the EQ, Sound Check, colours, the dark theme and Night Mode.
 
-**Hold Select in Now Playing** to open Cover Flow, go to the song's artist or album, or change shuffle, repeat, the EQ, the volume limit, Sound Check, brightness, colours, the dark theme and Night Mode. Menu takes you back from any list you opened there.
+The EQ has all 22 presets from iTunes, tuned as they are there. It also has presets for two pairs of headphones, the 7Hz Zero 2 earphones and the Koss KPH30i.
 
-**The EQ** has all 22 presets from iTunes, tuned exactly as they are there, and a row for each pair of headphones: so far the 7Hz Zero 2 earphones and the Koss KPH30i headphones. You hear a new preset the moment you pick it, and it doesn't make your music quieter.
+## Also
 
-**Sound Check** plays your library at about the same volume, using the levels Finder has already worked out. Turn it on in Settings, or by holding Select in Now Playing.
-
-**Photos** synced by Finder show in the familiar grid and full screen.
-
-**Podcasts and audiobooks** pick up where you left off.
-
-**The menus come in more than forty languages,** from Japanese and Arabic to Icelandic, and song titles show properly in nearly any alphabet.
-
-**Your videos are still there.** RockWheel doesn't play video itself, but the stock firmware stays on the iPod and shares the same library. To watch them, turn the Hold switch on while the iPod starts.
+- The volume, the volume limit and Night Mode's volume are all in percent, and the level shows under the bar as you turn the wheel.
+- Sound Check plays your songs at about the same loudness, using the levels Finder has already worked out.
+- Photos synced by Finder show in the familiar grid and full screen.
+- Podcasts and audiobooks pick up where you left off.
+- Hold Play for Now Playing from almost anywhere, and hold Menu for the main menu. After holding Play, press Menu to go back to the list you started the music from.
+- The menus come in more than forty languages, from Japanese and Arabic to Icelandic, and song titles show properly in nearly any alphabet.
+- A small moon in the status bar shows when Night Mode is on.
+- Your videos are still there. RockWheel doesn't play video, but the stock firmware stays on the iPod and shares the same library. To watch them, turn the Hold switch on while the iPod starts.
 
 ## Under the hood
 
@@ -144,6 +133,8 @@ All of these were measured on the test iPod. "Before" is Rockbox's behaviour or 
 | Cover Flow | 14–17 fps with 3 covers, about 8 with music playing | **24 fps with 7 covers**, music paused while you browse |
 | Showing a cover on track change | 2–3 s from a 1000×1000 embedded JPEG | **0.07–0.25 s** |
 | Music after pressing Next | 0.65–1.1 s | **0.45–0.6 s** |
+| A step of the volume | about 100 ms | **11 ms** |
+| Opening a menu after a pause | 0.78 s | **0.13 s** |
 | Getting a list of 13,180 songs ready to play | 4.5 s | **0.3–0.5 s** |
 | Library update after a sync | about 90 s for 200 new songs | **about 17 s for 200–300 new**, in a library of 6,810 |
 | Sending your play counts to Finder, at each connection | 1.8 s | **0.18 s** |
@@ -164,7 +155,11 @@ How that was done:
 - **Fonts load in a few large reads** at every start, rather than one read for each letter.
 - **Work done ahead of time.** Cover Flow's images, each album's colour, the collage of photos and the playlist of all songs are prepared while the library updates, so nothing has to be built when you open them.
 - **A new colour in about 65 ms, drawing included.** The memory for it is only taken when you choose Whole Screen or Fill.
-- **EQ presets keep their level.** The EQ cuts the signal digitally so that its boosts can't clip, and the analogue volume rises by the same amount. Near maximum volume, the peaks of loud music can reach the limit of the amplifier.
+- **EQ presets keep their level.** The EQ lowers the signal by the peak its bands add up to, so loud songs can't clip. The volume then rises by the same amount. For this, the volume scale stops at 0 dB and leaves the amplifier's last 6 dB to the EQ. Only a preset that boosts more than 6 dB is a little quieter at the very top.
+- **Fewer writes to the sound chip.** Each write waits for the chip's bus. A step of the volume used to take twelve writes, and now takes two. After a skip, the decoder also lets the menus run while it refills, unless the music is about to run out.
+- **Flash stays powered while the screen is on.** An iFlash card used to be switched off a few seconds after every read, like a hard drive, and took 0.6 s to come back. Now, while the screen is on, it only sleeps and wakes in 35–50 ms. It also starts waking as soon as the screen lights up. A hard drive works as before.
+- **The cover beside the menus comes from memory.** It's the copy Now Playing already holds, so a menu opened after a pause doesn't wait for the disk.
+- **Less reading at startup.** Letters of other alphabets load only when a song title needs them. Folders stay in a larger disk cache instead of being read again for each file. The albums' colours are read in large blocks. The menus are ready about a third of a second sooner.
 - **Sound Check from Finder's own values.** They're looked up on disk as a track loads. It only ever lowers a track, since Finder's database doesn't say where its peaks are.
 - **Faster theme changes.** A theme's pictures are packaged in the screen's own format and come in one DMA read rather than a row at a time, which took a backdrop from about a second to 14 ms with music playing. The fonts stay loaded, and the album art slots are held, so the audio buffer is never rebuilt.
 - **An index on the skin tags.** Looking them up again and again while scanning ahead took 80% of the parser's time.
@@ -182,7 +177,7 @@ How that was done:
 
 **What it was tested on:** one iPod. A 5.5G 30 GB model with 32 MB of RAM, an iFlash card of about 256 GB, macOS 26 and a library of about 13,000 songs.
 
-**Original hard drives have not been tested.** RockWheel doesn't change Rockbox's disk driver, so I expect it to run, but it was tuned on flash, where a read costs almost nothing. On a hard drive, I'd expect:
+**Original hard drives have not been tested.** RockWheel changes Rockbox's disk driver only for flash, so I expect it to run, but it was tuned on flash, where a read costs almost nothing. On a hard drive, I'd expect:
 
 - Cover Flow and covers on track changes to be slower, since they read artwork from disk, and more so when the drive has to spin up
 - Battery life to be shorter, since those reads keep the drive awake
