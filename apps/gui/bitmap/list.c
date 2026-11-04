@@ -437,6 +437,9 @@ void list_draw(struct screen *display, struct gui_synclist *list)
             && list->callback_has_children
             && list->callback_has_children(i, list->data))
             style |= STYLE_CHEVRON;
+        if (!lang_is_rtl() && list->callback_is_playing
+            && list->callback_is_playing(i, list->data))
+            style |= STYLE_PLAYING;
         linedes.style = style;
         linedes.scroll = is_selected ? true : list->scroll_all;
         linedes.line = i % list->selected_size;

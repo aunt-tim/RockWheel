@@ -911,6 +911,7 @@ static const struct plugin_api rockbox_api = {
 #ifdef HAVE_TC_RAMCACHE
     tagcache_for_each_track,
 #endif
+    pcmbuf_hold_decoding,
 };
 
 static int plugin_buffer_handle;

@@ -61,6 +61,8 @@ typedef enum themable_icons list_get_icon(int selected_item, void * data);
 /* whether an item leads to more (a menu, a folder), for the chevron on the
    selected one */
 typedef bool list_has_children(int selected_item, void * data);
+/* whether the item is the track playing */
+typedef bool list_is_playing(int selected_item, void * data);
 /* whether a row is the name of a group of rows, which can't be selected */
 typedef bool list_is_group(int item, void * data);
 /*
@@ -175,6 +177,7 @@ struct gui_synclist
     list_speak_item *callback_speak_item;
     list_draw_item *callback_draw_item;
     list_has_children *callback_has_children; /* can be NULL */
+    list_is_playing *callback_is_playing; /* can be NULL */
     list_is_group *callback_is_group; /* can be NULL */
 
     /* The data that will be passed to the callback function YOU implement */
@@ -248,6 +251,8 @@ extern void gui_synclist_set_nb_items(struct gui_synclist * lists, int nb_items)
 extern void gui_synclist_set_icon_callback(struct gui_synclist * lists, list_get_icon icon_callback);
 extern void gui_synclist_set_has_children_callback(struct gui_synclist * lists,
                                               list_has_children has_children_callback);
+extern void gui_synclist_set_is_playing_callback(struct gui_synclist * lists,
+                                                 list_is_playing is_playing_callback);
 extern void gui_synclist_set_voice_callback(struct gui_synclist * lists, list_speak_item voice_callback);
 extern void gui_synclist_set_viewport_defaults(struct viewport *vp, enum screen_type screen);
 #ifdef HAVE_LCD_COLOR

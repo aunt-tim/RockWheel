@@ -5809,6 +5809,13 @@ static int pictureflow_main(void)
         watch_wheel();
 #endif
 
+        /* While the covers move, the music goes on from what's decoded, and
+           the decoder waits until they stop or that runs low: it would take
+           both cores from the animation, 8 frames a second against 22 */
+        if (pf_state == pf_scrolling || pf_state == pf_cover_in
+            || pf_state == pf_cover_out)
+            rb->pcmbuf_hold_decoding(HZ/4);
+
         /* Handle states */
         switch ( pf_state ) {
             case pf_scrolling:

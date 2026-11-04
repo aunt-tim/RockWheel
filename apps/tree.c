@@ -188,6 +188,15 @@ static int tree_get_filecolor(int selected_item, void * data)
 }
 #endif
 
+#ifdef HAVE_TAGCACHE
+static bool tree_is_playing(int selected_item, void * data)
+{
+    struct tree_context * local_tc=(struct tree_context *)data;
+    return *(local_tc->dirfilter) == SHOW_ID3DB
+           && tagtree_is_playing(local_tc, selected_item);
+}
+#endif
+
 /* Folders, database levels and playlists lead to more, tracks don't */
 static bool tree_has_children(int selected_item, void * data)
 {
@@ -545,6 +554,9 @@ static int update_dir(void)
                             global_settings.show_icons?tree_get_fileicon:NULL);
     gui_synclist_set_has_children_callback(list, tree_has_children);
 #ifdef HAVE_TAGCACHE
+    gui_synclist_set_is_playing_callback(list, tree_is_playing);
+#endif
+#ifdef HAVE_TAGCACHE
     if(!id3db || global_settings.talk_menu)
 #endif
     {
@@ -793,6 +805,11 @@ static int dirbrowse(void)
         button = get_action(CONTEXT_TREE|ALLOW_SOFTLOCK,
                             list_do_action_timeout(&tree_lists, HZ/2));
         oldbutton = button;
+#ifdef HAVE_TAGCACHE
+        /* the speaker moves to the next track as it starts */
+        if (id3db && tagtree_playing_changed())
+            gui_synclist_draw(&tree_lists);
+#endif
         gui_synclist_do_button(&tree_lists, &button);
         tc.selected_item = gui_synclist_get_sel_pos(&tree_lists);
         int customaction = ONPLAY_NO_CUSTOMACTION;

@@ -441,13 +441,18 @@ void draw_progressbar(struct gui_wps *gwps, struct skin_viewport* skin_viewport,
     {
         int minvol = sound_min(SOUND_VOLUME);
         int maxvol = sound_max(SOUND_VOLUME);
+        /* a limit, Night Mode's too, is the whole bar: it's kept in the background */
+        int top = MIN(global_settings.volume_limit, maxvol);
 #if defined(HAVE_PERCEPTUAL_VOLUME) || defined(HAVE_TOUCHSCREEN)
-        length = 1000;
-        end = to_normalized_volume(global_status.volume, minvol, maxvol, length);
+        length = to_normalized_volume(top, minvol, maxvol, 1000);
+        end = to_normalized_volume(global_status.volume, minvol, maxvol, 1000);
 #else
-        length = maxvol - minvol;
+        length = top - minvol;
         end = global_status.volume - minvol;
 #endif
+        if ((long)length <= 0)
+            length = 1;
+        end = MIN(end, length);
         end = volume_bar_step(end);
     }
     else if (pb->type == SKIN_TOKEN_BATTERY_PERCENTBAR)

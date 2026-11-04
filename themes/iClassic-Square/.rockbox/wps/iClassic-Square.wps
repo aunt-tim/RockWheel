@@ -127,9 +127,6 @@
 %xl(v,Volume Left.bmp,0,0)
 %Vl(volume,34,204,13,19,-)
 %xd(v)
-# under the bar: the volume limit, if one is set; the bar alone shows the volume
-%Vl(volume,58,227,204,13,2)%Vf(000000)
-%ac%?nV<%nV|>
 %Vl(pb,0,207,45,14,2)%Vf(000000)
 %ar%pc
 %Vl(pb,273,207,47,14,2)%Vf(000000)
