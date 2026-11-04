@@ -109,7 +109,7 @@ The EQ has all 22 presets from iTunes, tuned as they are there. It also has pres
 
 ## Also
 
-- The volume, the volume limit and Night Mode's volume are all in percent, and the level shows under the bar as you turn the wheel.
+- The volume, the volume limit and Night Mode's volume are all in percent.
 - Sound Check plays your songs at about the same loudness, using the levels Finder has already worked out.
 - Photos synced by Finder show in the familiar grid and full screen.
 - Podcasts and audiobooks pick up where you left off.
@@ -130,7 +130,7 @@ All of these were measured on the test iPod. "Before" is Rockbox's behaviour or 
 |---|---:|---:|
 | List scrolling while MP3 plays | 11 fps | **20.7 fps** |
 | List scrolling while AAC plays | 17 fps | **20.2 fps** |
-| Cover Flow | 14–17 fps with 3 covers, about 8 with music playing | **24 fps with 7 covers**, music paused while you browse |
+| Cover Flow | 14–17 fps with 3 covers, about 8 with music playing | **24 fps with 7 covers** with the music paused |
 | Showing a cover on track change | 2–3 s from a 1000×1000 embedded JPEG | **0.07–0.25 s** |
 | Music after pressing Next | 0.65–1.1 s | **0.45–0.6 s** |
 | A step of the volume | about 100 ms | **11 ms** |

@@ -30,6 +30,7 @@
 #include "settings.h"
 #include "misc.h"
 #include "list.h"
+#include "slide.h"
 
 /*some short cuts for fg/bg/line selector handling */
 #ifdef HAVE_LCD_COLOR
@@ -99,6 +100,9 @@ static void set_clear_valid_vp(enum screen_type screen, struct viewport *vp)
     }
 }
 
+/* the theme is only turned off and on, to be drawn again */
+static bool theme_redrawing;
+
 static void toggle_theme(enum screen_type screen, bool force)
 {
     bool enable_event = false;
@@ -164,6 +168,8 @@ static void toggle_theme(enum screen_type screen, bool force)
 #endif
         screens[screen].scroll_stop();
         skin_is_dirty(screen); /* remove dirty flag */
+        if (screen == SCREEN_MAIN && !theme_redrawing)
+            slide_forget();
     }
     /* let list initialize viewport in case viewport dimensions is changed. */
     send_event(GUI_EVENT_THEME_CHANGED, NULL);
@@ -207,6 +213,19 @@ static bool is_theme_enabled(enum screen_type screen)
     return theme_stack[screen][top].enabled;
 }
 
+bool viewportmanager_theme_shown(enum screen_type screen)
+{
+    return theme_stack_top[screen] >= 0 && is_theme_enabled(screen);
+}
+
+void viewportmanager_theme_redraw(enum screen_type screen)
+{
+    theme_redrawing = true;
+    viewportmanager_theme_enable(screen, false, NULL);
+    viewportmanager_theme_undo(screen, true);
+    theme_redrawing = false;
+}
+
 int viewport_get_nb_lines(const struct viewport *vp)
 {
     return vp->height/font_get(vp->font)->height;
@@ -224,7 +243,7 @@ static void viewportmanager_update(unsigned short id, void* data)
 {
     viewportmanager_redraw(id, data);
     FOR_NB_SCREENS(i)
-        if (skin_is_dirty(i))
+        if (skin_is_dirty(i) && !(i == SCREEN_MAIN && slide_run()))
             screens[i].update();
 }
 

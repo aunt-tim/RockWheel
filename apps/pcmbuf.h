@@ -79,6 +79,10 @@ void pcmbuf_sync_position_update(void);
 
 /* Misc */
 bool pcmbuf_is_lowdata(void);
+/* An animation of the interface, as Cover Flow's, asks for the processors for this
+   many ticks: the decoder waits meanwhile, while enough is buffered that the music
+   goes on from the buffer */
+void pcmbuf_hold_decoding(long ticks);
 void pcmbuf_set_low_latency(bool state);
 
 #endif /* PCMBUF_H */

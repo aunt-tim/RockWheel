@@ -54,6 +54,10 @@ int tagtree_get_attr(struct tree_context* c);
 int tagtree_get_icon(struct tree_context* c);
 int tagtree_get_filename(struct tree_context* c, char *buf, int buflen);
 int tagtree_get_custom_action(struct tree_context* c);
+/* whether the entry is the track playing, which has a speaker in the lists */
+bool tagtree_is_playing(struct tree_context* c, int id);
+/* true once when the track playing is another than the last time it was asked */
+bool tagtree_playing_changed(void);
 bool tagtree_get_subentry_filename(char *buf, size_t bufsize);
 bool tagtree_entries_iterate(struct tagcache_search *tcs,
                              bool (*action_cb)(const char *file_name),

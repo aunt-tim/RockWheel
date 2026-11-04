@@ -437,6 +437,16 @@ static void boost_codec_thread(int pcm_fill_state)
 #define boost_codec_thread(pcm_fill_state) do{}while(0)
 #endif /* HAVE_PRIORITY_SCHEDULING */
 
+/* until when the decoder leaves the processors to the interface */
+static long hold_until;
+/* as long as this much is buffered, 2 s of the 8 */
+#define HOLD_DATA           data_level(8)
+
+void pcmbuf_hold_decoding(long ticks)
+{
+    hold_until = current_tick + ticks;
+}
+
 /* Get the next available buffer and size - assumes adequate space exists */
 static void * get_write_buffer(size_t *size)
 {
@@ -497,6 +507,12 @@ void * pcmbuf_request_buffer(int *count)
         audio_pcmbuf_sync_position();
 
     if (freespace < size + PCMBUF_CHUNK_SIZE)
+        return NULL;
+
+    /* the codec waits as it would with a full buffer, and its queue on the
+       other core fills up and stops that one too */
+    if (status == CHANNEL_PLAYING && TIME_BEFORE(current_tick, hold_until)
+        && remaining > HOLD_DATA)
         return NULL;
 
     /* Maintain the buffer level above the watermark */

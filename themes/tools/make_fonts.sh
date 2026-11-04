@@ -39,9 +39,10 @@ font() {
         -o "$out/$name" "$ttf/$file" > /dev/null
 }
 
-# menus and titles: 5 more pixels of line height, 2 of them above the text
-# so that it sits in the middle of the selection bar
-font 24-Inter-Bold.fnt     Inter-Bold.ttf     18 -r 3 -Ta-2
+# menus and titles: 3 more pixels of line height, 1 of them above the text
+# so that it sits in the middle of the selection bar; the name is still the
+# 24 pixels the rows were before, so an update replaces the file
+font 24-Inter-Bold.fnt     Inter-Bold.ttf     18 -r 2 -Ta-1
 font 18-Inter-SemiBold.fnt Inter-SemiBold.ttf 17    # iClassic lyrics
 font 17-Inter-SemiBold.fnt Inter-SemiBold.ttf 15    # iClassic track info
 font 17-Inter-Medium.fnt   Inter-Medium.ttf   15    # iClassic album

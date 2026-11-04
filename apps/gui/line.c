@@ -45,6 +45,7 @@ static void style_line(struct screen *display, int x, int y, struct line_desc *l
 static void put_text(struct screen *display, int x, int y, struct line_desc *line,
                       const char *text, bool prevent_scroll, int text_skip_pixels);
 static void draw_chevron(struct screen *display, int y, struct line_desc *line);
+static void draw_speaker(struct screen *display, int y, struct line_desc *line);
 
 struct line_desc_scroll {
     struct line_desc desc;
@@ -94,6 +95,8 @@ static void scroller(struct scrollinfo *s, struct screen *display)
         put_text(display, s->x, s->y, &line->desc, s->line, true, s->offset);
         if (line->desc.style & STYLE_CHEVRON)
             draw_chevron(display, y, &line->desc);
+        if (line->desc.style & STYLE_PLAYING)
+            draw_speaker(display, y, &line->desc);
     }
 }
 
@@ -467,6 +470,41 @@ static void draw_chevron(struct screen *display, int y, struct line_desc *line)
     display->putsxy(x, y + height/2 - display->getcharheight()/2, chevron);
 }
 
+/* The speaker at the right end of the line of the track playing, as on a stock
+   iPod, where the chevron of an item that leads to more would be */
+#if defined(HAVE_LCD_COLOR) && !defined(DISABLE_ALPHA_BITMAP)
+#define SPEAKER_W 12
+#define SPEAKER_H 11
+static const unsigned char speaker_alpha[] = {
+    0xff, 0xff, 0xff, 0xf9, 0xff, 0xff, 0xff, 0xff, 0x4e, 0xf5, 0xdf, 0xf5,
+    0xff, 0xef, 0x03, 0xf5, 0xde, 0x72, 0x7b, 0x37, 0x00, 0xf5, 0x75, 0x0b,
+    0x07, 0x00, 0x00, 0xf5, 0x0b, 0x1e, 0x07, 0x00, 0x00, 0xf5, 0x0f, 0x3d,
+    0x07, 0x00, 0x00, 0xf5, 0x0b, 0x1e, 0x7b, 0x37, 0x00, 0xf5, 0x75, 0x0b,
+    0xff, 0xef, 0x03, 0xf5, 0xde, 0x72, 0xff, 0xff, 0x4e, 0xf5, 0xdf, 0xf5,
+    0xff, 0xff, 0xff, 0xf9, 0xff, 0xff,
+};
+#endif
+
+static void draw_speaker(struct screen *display, int y, struct line_desc *line)
+{
+#if defined(HAVE_LCD_COLOR) && !defined(DISABLE_ALPHA_BITMAP)
+    if (display->screen_type == SCREEN_MAIN)
+    {
+        int height = line->height == -1 ? display->getcharheight() : line->height;
+        int x = display->getwidth() - SPEAKER_W - CHEVRON_MARGIN;
+        style_line(display, x - CHEVRON_MARGIN, y, line);
+        display->set_drawmode(DRMODE_FG);
+        lcd_alpha_bitmap_part(speaker_alpha, 0, 0, SPEAKER_W,
+                              x, y + (height - SPEAKER_H)/2,
+                              SPEAKER_W, SPEAKER_H);
+    }
+#else
+    (void)display;
+    (void)y;
+    (void)line;
+#endif
+}
+
 void vput_line(struct screen *display,
               int x, int y, struct line_desc *line,
               const char *fmt, va_list ap)
@@ -484,6 +522,8 @@ void vput_line(struct screen *display,
     print_line(display, x, y, line, fmt, ap);
     if (line->style & STYLE_CHEVRON)
         draw_chevron(display, y, line);
+    if (line->style & STYLE_PLAYING)
+        draw_speaker(display, y, line);
 #if (LCD_DEPTH > 1 || (defined(LCD_REMOTE_DEPTH) && LCD_REMOTE_DEPTH > 1))
     if (display->depth > 1 && line->style > STYLE_INVERT)
     {

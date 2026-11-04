@@ -35,6 +35,7 @@
 #include "skin_display.h"
 #include "skin_engine.h"
 #include "cover_palette.h"
+#include "cover_drift.h"
 #include "skin_parser.h"
 #include "tag_table.h"
 #include "skin_scan.h"
@@ -315,6 +316,10 @@ static bool do_non_text_tags(struct gui_wps *gwps, struct skin_draw_info *info,
             }
             break;
         }
+        case SKIN_TOKEN_COVER_DRIFT:
+            if (do_refresh)
+                cover_drift_draw(gwps->display, &skin_vp->vp);
+            break;
 #ifdef HAVE_ALBUMART
         case SKIN_TOKEN_ALBUMART_DISPLAY:
         {

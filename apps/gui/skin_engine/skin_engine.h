@@ -78,6 +78,10 @@ bool skin_art_found(const struct wps_data *data, int handle);
 bool skin_art_available(int handle);
 bool skin_art_colours_update(const struct wps_data *data);
 bool skin_art_kept_expired(void);
+
+/* The volume bar goes to a new level in a few frames instead of all at once:
+   true while it's on its way, for the screen to be drawn again soon */
+bool skin_volume_bar_moving(void);
 #endif
 void skin_backdrop_load_setting(void);
 void skin_backdrop_unload(int backdrop_id);

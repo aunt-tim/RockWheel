@@ -2389,6 +2389,52 @@ void tagtree_end_go_to(bool go_back, int *dirlevel, int *selected_item)
         place_restore(&go_to_place, dirlevel, selected_item);
 }
 
+/* the database's entry of the track playing, or -1: looked up once a track, as
+   its tagcache_idx is only there with the runtime database or resuming on */
+static int playing_index(void)
+{
+    static char path[MAX_PATH];
+    static int index = -1;
+    if (!(audio_status() & AUDIO_STATUS_PLAY))
+        return -1;
+    const struct mp3entry *id3 = audio_current_track();
+    if (!id3 || !id3->path[0])
+        return -1;
+    if (id3->tagcache_idx > 0)
+        return id3->tagcache_idx - 1;
+    if (strcmp(path, id3->path))
+    {
+        struct tagcache_search tcs;
+        strmemccpy(path, id3->path, sizeof(path));
+        index = -1;
+        if (tagcache_find_index(&tcs, path))
+        {
+            index = tcs.idx_id;
+            tagcache_search_finish(&tcs);
+        }
+    }
+    return index;
+}
+
+bool tagtree_is_playing(struct tree_context* c, int id)
+{
+    const int playing = playing_index();
+    if (playing < 0 || id < 0 || id >= c->filesindir)
+        return false;
+    const struct tagentry *entry = tagtree_get_entry(c, id);
+    return entry->newtable == TABLE_PLAYTRACK && entry->extraseek == playing;
+}
+
+bool tagtree_playing_changed(void)
+{
+    static int last = -1;
+    const int playing = playing_index();
+    if (playing == last)
+        return false;
+    last = playing;
+    return true;
+}
+
 int tagtree_enter(struct tree_context* c, bool is_visible)
 {
     logf( "%s", __func__);
@@ -2548,6 +2594,14 @@ int tagtree_enter(struct tree_context* c, bool is_visible)
             if (newextra == TABLE_PLAYTRACK)
             {
                 adjust_selection = false;
+
+                /* the track playing: Now Playing, where it goes on */
+                if (!is_random_item && seek == playing_index())
+                {
+                    c->dirlevel--;
+                    rc = 2;
+                    break;
+                }
 
                 if (global_settings.party_mode && audio_status()) {
                     splash(HZ, ID2P(LANG_PARTY_MODE));

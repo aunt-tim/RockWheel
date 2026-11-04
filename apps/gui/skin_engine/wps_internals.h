@@ -287,6 +287,7 @@ struct skin_albumart {
     unsigned char xalign; /* WPS_ALBUMART_ALIGN_LEFT, _CENTER, _RIGHT */
     unsigned char yalign; /* WPS_ALBUMART_ALIGN_TOP, _CENTER, _BOTTOM */
     unsigned char state; /* WPS_ALBUMART_NONE, _CHECK, _LOAD */
+    bool turned; /* drawn turned a little away, over its reflection */
 
     int draw_handle;
 };
