@@ -40,7 +40,8 @@ New source files must be added to the matching `SOURCES` file (e.g. `apps/SOURCE
 
 Needs the Rockbox ARM toolchain (`tools/rockboxdev.sh --target=a`) for the device,
 and SDL2 plus Homebrew's `gcc-16` for the simulator (`tools/configure` insists on it
-on macOS; `brew install sdl2 gcc`). The ARM toolchain isn't installed here yet. The
+on macOS; `brew install sdl2 gcc`). Here the ARM toolchain is in `~/rockbox-toolchain`
+(put its `bin` on PATH). The
 simulator takes scripted input: `RBSIM_SCRIPT=<file> ./rockboxui`, one key name per
 line (`Return`, `Escape`, `Down`...), `wait <ms>`, `dump` or `quit`. Run it with
 `SDL_VIDEODRIVER=dummy`: a background window's screen updates stall for up to a
